@@ -526,15 +526,19 @@ services:
     jibri:
         image: ${JITSI_IMAGE_REPO:-ghcr.io/jitsi}/jibri:${JITSI_IMAGE_VERSION:-unstable}
         restart: ${RESTART_POLICY:-unless-stopped}
-        read_only: true
+        privileged: true
         tmpfs:
             - /run:size=256M,mode=1750,exec
-            - /tmp:size=256M,mode=1777,noexec
+            - /tmp:size=256M,mode=1777,exec
         volumes:
             - ${CONFIG}/jibri:/config:Z
             - ${CONFIG}/storage/jibri:/storage:Z
+            - /dev/shm:/dev/shm
         shm_size: '2gb'
+        extra_hosts:
+            - "meet.local:192.168.1.14"
         environment:
+            - CHROME_FLAGS=--no-sandbox --disable-dev-shm-usage --ignore-certificate-errors --allow-insecure-localhost
             - AUTOSCALER_SIDECAR_KEY_FILE
             - AUTOSCALER_SIDECAR_KEY_ID
             - AUTOSCALER_SIDECAR_GROUP_NAME
@@ -590,6 +594,16 @@ services:
             - jicofo
         networks:
             meet.jitsi:
+    nginx-rtmp:
+        image: alfg/nginx-rtmp
+        container_name: nginx-rtmp
+        ports:
+          - "1935:1935"
+          - "8081:80"
+        volumes:
+          - ./hls:/mnt/hls
+        networks:
+          - meet.jitsi
 # Custom network so all services can communicate using a FQDN
 networks:
     meet.jitsi:
