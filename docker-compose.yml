@@ -518,14 +518,12 @@ services:
     jibri:
         image: jitsi/jibri:${JITSI_IMAGE_VERSION:-stable-11031}
         restart: ${RESTART_POLICY:-unless-stopped}
-  #      privileged: true
         volumes:
             - ${CONFIG}/jibri:/config:Z
         shm_size: '2gb'
         cap_add:
             - SYS_ADMIN
         environment:
-   #         - CHROME_FLAGS=--no-sandbox --disable-dev-shm-usage --ignore-certificate-errors --allow-insecure-localhost
             - AUTOSCALER_SIDECAR_KEY_FILE
             - AUTOSCALER_SIDECAR_KEY_ID
             - AUTOSCALER_SIDECAR_GROUP_NAME
@@ -583,6 +581,7 @@ services:
             meet.jitsi:
     nginx-rtmp:
         image: alfg/nginx-rtmp
+        restart: ${RESTART_POLICY:-unless-stopped}
         container_name: nginx-rtmp
         ports:
           - "1935:1935"

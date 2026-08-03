@@ -1,0 +1,22 @@
+.c-menu-mobile{
+    position:fixed;
+    z-index: 2;
+    top: 0;
+    left: 0;
+    bottom: 0;
+}
+.c-menu-hover-mobile{
+    background-color:#00000080 !important;
+    position:fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+}
+.c-menu .x-docked-bottom{
+    display: none !important;
+}
+.c-menu-mobile .x-docked-bottom{
+    display: block !important;
+}
