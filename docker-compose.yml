@@ -2,6 +2,7 @@ services:
     # Frontend
     web:
         image: jitsi/web:${JITSI_IMAGE_VERSION:-stable-11031}
+        container_name: jitsi_web
         restart: ${RESTART_POLICY:-unless-stopped}
         ports:
             - '${HTTP_PORT}:80'
@@ -11,6 +12,9 @@ services:
             - ${CONFIG}/web/crontabs:/var/spool/cron/crontabs:Z
             - ${CONFIG}/transcripts:/usr/share/jitsi-meet/transcripts:Z
             - ${CONFIG}/web/load-test:/usr/share/jitsi-meet/load-test:Z
+            # - ./jitsi/web/custom-config.js:/config/custom-config.js
+            - ./jitsi/web/custom-interface_config.js:/config/custom-interface_config.js
+            - ./php/assets/images/logo1.png:/usr/share/jitsi-meet/images/logo1.png:ro
         labels:
             service: "jitsi-web"
         environment:
@@ -200,6 +204,7 @@ services:
     # XMPP server
     prosody:
         image: jitsi/prosody:${JITSI_IMAGE_VERSION:-stable-11031}
+        container_name: jitsi_prosody
         restart: ${RESTART_POLICY:-unless-stopped}
         expose:
             - '${XMPP_PORT:-5222}'
@@ -354,6 +359,7 @@ services:
     # Focus component
     jicofo:
         image: jitsi/jicofo:${JITSI_IMAGE_VERSION:-stable-11031}
+        container_name: jitsi_jicofo
         restart: ${RESTART_POLICY:-unless-stopped}
         ports:
             - '127.0.0.1:${JICOFO_REST_PORT:-8888}:8888'
@@ -450,6 +456,7 @@ services:
     # Video bridge
     jvb:
         image: jitsi/jvb:${JITSI_IMAGE_VERSION:-stable-11031}
+        container_name: jitsi_jvb
         restart: ${RESTART_POLICY:-unless-stopped}
         ports:
             - '${JVB_PORT:-10000}:${JVB_PORT:-10000}/udp'
@@ -517,6 +524,7 @@ services:
             meet.jitsi:
     jibri:
         image: jitsi/jibri:${JITSI_IMAGE_VERSION:-stable-11031}
+        container_name: jitsi_jibri
         restart: ${RESTART_POLICY:-unless-stopped}
         volumes:
             - ${CONFIG}/jibri:/config:Z
@@ -581,8 +589,8 @@ services:
             meet.jitsi:
     nginx-rtmp:
         image: alfg/nginx-rtmp
-        restart: ${RESTART_POLICY:-unless-stopped}
-        container_name: nginx-rtmp
+        restart: always
+        container_name: webcasting_rtmp
         ports:
           - "1935:1935"
           - "8081:80"
@@ -596,21 +604,37 @@ services:
             "
         networks:
           - meet.jitsi
+    mysql:
+        image: mysql:8.0
+        container_name: webcasting_database
+        environment:
+            MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-ckamal123}
+            MYSQL_DATABASE: ${DB_NAME:-ckamal_db}
+            MYSQL_USER: ${DB_USER:-ckamal} 
+            MYSQL_PASSWORD: ${DB_PASSWORD:-ckamal123} 
+        command: --default-authentication-plugin=mysql_native_password
+        ports:
+            - "${DB_PORT:-3306}:3306"
+        volumes:
+            - ./database:/var/lib/mysql
+        restart: always
+        networks:
+            - meet.jitsi
     php:
         image: php:8.1-apache
-        container_name: ckamal_web
+        container_name: webcasting_web
         ports:
           - "${WEB_PORT:-8080}:80"
         volumes:
-          - ./web_test:/var/www/html
+          - ./php:/var/www/html
         environment: 
           - DB_HOST=mysql
           - DB_USER=${DB_USER:-ckamal}
           - DB_PASSWORD=${DB_PASSWORD:-ckamal123}
           - DB_NAME=${DB_NAME:-ckamal_db}
           - DB_PORT=${DB_PORT:-3306}
- #       depends_on:
- #         - mysql
+        depends_on:
+         - mysql
         restart: always
         networks:
           - meet.jitsi
