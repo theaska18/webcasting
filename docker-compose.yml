@@ -1,21 +1,16 @@
 services:
     # Frontend
     web:
-        image: ${JITSI_IMAGE_REPO:-ghcr.io/jitsi}/web:${JITSI_IMAGE_VERSION:-unstable}
+        image: jitsi/web:${JITSI_IMAGE_VERSION:-stable-11031}
         restart: ${RESTART_POLICY:-unless-stopped}
-        read_only: true
-        tmpfs:
-            - /run:size=16M,mode=1750,exec
-            - /tmp:size=16M,mode=1777,noexec
         ports:
-            - '${HTTP_PORT}:8000'
-            - '${HTTPS_PORT}:8443'
+            - '${HTTP_PORT}:80'
+            - '${HTTPS_PORT}:443'
         volumes:
             - ${CONFIG}/web:/config:Z
-            - ${CONFIG}/storage/web:/storage:Z
-            - ${CONFIG}/storage/transcripts:/usr/share/jitsi-meet/transcripts:ro,z
-            - ${CONFIG}/tmp/web-crontabs:/var/spool/cron/crontabs:Z
-            - ${CONFIG}/tmp/web-load-test:/usr/share/jitsi-meet/load-test:Z
+            - ${CONFIG}/web/crontabs:/var/spool/cron/crontabs:Z
+            - ${CONFIG}/transcripts:/usr/share/jitsi-meet/transcripts:Z
+            - ${CONFIG}/web/load-test:/usr/share/jitsi-meet/load-test:Z
         labels:
             service: "jitsi-web"
         environment:
@@ -32,6 +27,9 @@ services:
             - CODEC_ORDER_JVB_MOBILE
             - CODEC_ORDER_P2P
             - CODEC_ORDER_P2P_MOBILE
+            - COLIBRI_WEBSOCKET_PORT
+            - COLIBRI_WEBSOCKET_JVB_LOOKUP_NAME
+            - COLIBRI_WEBSOCKET_REGEX
             - CONFCODE_URL
             - CORS_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN
             - CSP_HEADER
@@ -47,6 +45,7 @@ services:
             - DIALOUT_AUTH_URL
             - DIALOUT_CODES_URL
             - DISABLE_AUDIO_LEVELS
+            - DISABLE_COLIBRI_WEBSOCKET_JVB_LOOKUP
             - DISABLE_DEEP_LINKING
             - DISABLE_GRANT_MODERATOR
             - DISABLE_HTTPS
@@ -63,12 +62,13 @@ services:
             - DYNAMIC_BRANDING_URL
             - ENABLE_ADAPTIVE_MODE
             - ENABLE_AUDIO_PROCESSING
-            - ENABLE_AUDIO_TRANSLATION
             - ENABLE_AUTOMATIC_GAIN_CONTROL
             - ENABLE_AUTH
             - ENABLE_AUTH_DOMAIN
             - ENABLE_BREAKOUT_ROOMS
             - ENABLE_CALENDAR
+            - ENABLE_COLIBRI_WEBSOCKET
+            - ENABLE_COLIBRI_WEBSOCKET_UNSAFE_REGEX
             - ENABLE_E2EPING
             - ENABLE_FILE_RECORDING_SHARING
             - ENABLE_GUESTS
@@ -78,6 +78,7 @@ services:
             - ENABLE_LETSENCRYPT
             - ENABLE_NO_AUDIO_DETECTION
             - ENABLE_NOISY_MIC_DETECTION
+            - ENABLE_OCTO
             - ENABLE_OPUS_RED
             - ENABLE_PREJOIN_PAGE
             - ENABLE_P2P
@@ -198,12 +199,8 @@ services:
 
     # XMPP server
     prosody:
-        image: ${JITSI_IMAGE_REPO:-ghcr.io/jitsi}/prosody:${JITSI_IMAGE_VERSION:-unstable}
+        image: jitsi/prosody:${JITSI_IMAGE_VERSION:-stable-11031}
         restart: ${RESTART_POLICY:-unless-stopped}
-        read_only: true
-        tmpfs:
-            - /run:size=16M,mode=1750,exec
-            - /tmp:size=16M,mode=1777,noexec
         expose:
             - '${XMPP_PORT:-5222}'
             - '${PROSODY_S2S_PORT:-5269}'
@@ -214,11 +211,9 @@ services:
         volumes:
             - ${CONFIG}/prosody/config:/config:Z
             - ${CONFIG}/prosody/prosody-plugins-custom:/prosody-plugins-custom:Z
-            - ${CONFIG}/storage/prosody:/var/lib/prosody:Z
         environment:
             - AUTH_TYPE
             - DISABLE_POLLS
-            - ENABLE_AUDIO_TRANSLATION
             - ENABLE_AUTH
             - ENABLE_AV_MODERATION
             - ENABLE_BREAKOUT_ROOMS
@@ -293,6 +288,8 @@ services:
             - PROSODY_DISABLE_S2S_LIMIT
             - PROSODY_ENABLE_FILTER_MESSAGES
             - PROSODY_ENABLE_MUC_RESOURCE_VALIDATE
+            - PROSODY_MUC_RESOURCE_VALIDATE_ANONYMOUS_STRICT
+            - PROSODY_MUC_RESOURCE_VALIDATE_ANON_METHODS
             - PROSODY_ENABLE_RATE_LIMITS
             - PROSODY_ENABLE_RECORDING_METADATA
             - PROSODY_ENABLE_STANZA_COUNTS
@@ -303,8 +300,6 @@ services:
             - PROSODY_LOG_CONFIG
             - PROSODY_METRICS_ALLOWED_CIDR
             - PROSODY_MODE
-            - PROSODY_MUC_RESOURCE_VALIDATE_ANON_METHODS
-            - PROSODY_MUC_RESOURCE_VALIDATE_ANONYMOUS_STRICT
             - PROSODY_RATE_LIMIT_LOGIN_RATE
             - PROSODY_RATE_LIMIT_SESSION_RATE
             - PROSODY_RATE_LIMIT_TIMEOUT
@@ -358,12 +353,8 @@ services:
 
     # Focus component
     jicofo:
-        image: ${JITSI_IMAGE_REPO:-ghcr.io/jitsi}/jicofo:${JITSI_IMAGE_VERSION:-unstable}
+        image: jitsi/jicofo:${JITSI_IMAGE_VERSION:-stable-11031}
         restart: ${RESTART_POLICY:-unless-stopped}
-        read_only: true
-        tmpfs:
-            - /run:size=16M,mode=1750,exec
-            - /tmp:size=16M,mode=1777,noexec
         ports:
             - '127.0.0.1:${JICOFO_REST_PORT:-8888}:8888'
         volumes:
@@ -384,7 +375,9 @@ services:
             - ENABLE_CODEC_OPUS_RED
             - ENABLE_JVB_XMPP_SERVER
             - ENABLE_OCTO
+            - ENABLE_OCTO_SCTP
             - ENABLE_RECORDING
+            - ENABLE_SCTP
             - ENABLE_SHARED_DOCUMENT_RANDOM_NAME
             - ENABLE_TRANSCRIPTIONS
             - ENABLE_VISITORS
@@ -415,9 +408,6 @@ services:
             - JICOFO_OCTO_REGION
             - JICOFO_RESTART_REQUEST_MAX
             - JICOFO_RESTART_REQUEST_INTERVAL
-            - JICOFO_TRANSLATION_URL_TEMPLATE
-            - JICOFO_TRANSLATION_CF_ACCESS_CLIENT_ID
-            - JICOFO_TRANSLATION_CF_ACCESS_CLIENT_SECRET
             - JICOFO_TRUSTED_DOMAINS
             - JIBRI_BREWERY_MUC
             - JIBRI_REQUEST_RETRIES
@@ -459,12 +449,8 @@ services:
 
     # Video bridge
     jvb:
-        image: ${JITSI_IMAGE_REPO:-ghcr.io/jitsi}/jvb:${JITSI_IMAGE_VERSION:-unstable}
+        image: jitsi/jvb:${JITSI_IMAGE_VERSION:-stable-11031}
         restart: ${RESTART_POLICY:-unless-stopped}
-        read_only: true
-        tmpfs:
-            - /run:size=16M,mode=1750,exec
-            - /tmp:size=16M,mode=1777,noexec
         ports:
             - '${JVB_PORT:-10000}:${JVB_PORT:-10000}/udp'
             - '127.0.0.1:${JVB_COLIBRI_PORT:-8080}:8080'
@@ -484,8 +470,10 @@ services:
             - AUTOSCALER_SIDECAR_STATS_POLLING_INTERVAL
             - DISABLE_AWS_HARVESTER
             - DOCKER_HOST_ADDRESS
+            - ENABLE_COLIBRI_WEBSOCKET
             - ENABLE_JVB_XMPP_SERVER
             - ENABLE_OCTO
+            - ENABLE_SCTP
             - JVB_ADVERTISE_IPS
             - JVB_ADVERTISE_PRIVATE_CANDIDATES
             - JVB_AUTH_USER
@@ -504,10 +492,14 @@ services:
             - JVB_OCTO_RELAY_ID
             - JVB_REQUIRE_VALID_ADDRESS
             - JVB_USE_USRSCTP
+            - JVB_WS_DOMAIN
+            - JVB_WS_SERVER_ID
+            - JVB_WS_TLS
             - JVB_XMPP_AUTH_DOMAIN
             - JVB_XMPP_INTERNAL_MUC_DOMAIN
             - JVB_XMPP_PORT
             - JVB_XMPP_SERVER
+            - PUBLIC_URL
             - SENTRY_DSN="${JVB_SENTRY_DSN:-0}"
             - SENTRY_ENVIRONMENT
             - SENTRY_RELEASE
@@ -524,21 +516,16 @@ services:
         networks:
             meet.jitsi:
     jibri:
-        image: ${JITSI_IMAGE_REPO:-ghcr.io/jitsi}/jibri:${JITSI_IMAGE_VERSION:-unstable}
+        image: jitsi/jibri:${JITSI_IMAGE_VERSION:-stable-11031}
         restart: ${RESTART_POLICY:-unless-stopped}
-        privileged: true
-        tmpfs:
-            - /run:size=256M,mode=1750,exec
-            - /tmp:size=256M,mode=1777,exec
+  #      privileged: true
         volumes:
             - ${CONFIG}/jibri:/config:Z
-            - ${CONFIG}/storage/jibri:/storage:Z
-            - /dev/shm:/dev/shm
         shm_size: '2gb'
-        extra_hosts:
-            - "meet.local:192.168.1.14"
+        cap_add:
+            - SYS_ADMIN
         environment:
-            - CHROME_FLAGS=--no-sandbox --disable-dev-shm-usage --ignore-certificate-errors --allow-insecure-localhost
+   #         - CHROME_FLAGS=--no-sandbox --disable-dev-shm-usage --ignore-certificate-errors --allow-insecure-localhost
             - AUTOSCALER_SIDECAR_KEY_FILE
             - AUTOSCALER_SIDECAR_KEY_ID
             - AUTOSCALER_SIDECAR_GROUP_NAME
@@ -602,8 +589,38 @@ services:
           - "8081:80"
         volumes:
           - ./hls:/mnt/hls
+          - ./nginx-rtmp/nginx.conf:/tmp/nginx.conf:ro
+        command: >
+            sh -c "
+                cp /tmp/nginx.conf /etc/nginx/nginx.conf &&
+                exec nginx
+            "
         networks:
           - meet.jitsi
+    php:
+        image: php:8.1-apache
+        container_name: ckamal_web
+        ports:
+          - "${WEB_PORT:-8080}:80"
+        volumes:
+          - ./web_test:/var/www/html
+        environment: 
+          - DB_HOST=mysql
+          - DB_USER=${DB_USER:-ckamal}
+          - DB_PASSWORD=${DB_PASSWORD:-ckamal123}
+          - DB_NAME=${DB_NAME:-ckamal_db}
+          - DB_PORT=${DB_PORT:-3306}
+ #       depends_on:
+ #         - mysql
+        restart: always
+        networks:
+          - meet.jitsi
+        command: sh -c "
+          docker-php-ext-install mysqli && 
+          docker-php-ext-enable mysqli &&
+          a2enmod rewrite &&
+          echo 'ServerName localhost' >> /etc/apache2/apache2.conf && 
+          apache2-foreground"
 # Custom network so all services can communicate using a FQDN
 networks:
     meet.jitsi:
