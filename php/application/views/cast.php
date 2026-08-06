@@ -4,7 +4,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>WebCast | <?= $roomName; ?></title>
         <link rel="icon" type="image/png" href="<?= base_url(); ?>assets/images/logo1.png">
-        <script src='https://cast.ckamal.com/external_api.js'></script>
+        <script src='https://jitsi.ckamal.com/external_api.js'></script>
         <style>
           html, body {
             margin: 0;
@@ -22,7 +22,7 @@
       <body>
         <div id="video-meet" ref="apiRef" />
         <script>
-          const domain = 'cast.ckamal.com';
+          const domain = 'jitsi.ckamal.com';
           const options = {
             roomName: '<?= $roomName; ?>',
             parentNode: document.querySelector("#video-meet"),
