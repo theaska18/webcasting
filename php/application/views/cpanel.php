@@ -6,7 +6,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 	<meta charset="utf-8">
 	<meta name="mobile-web-app-capable" content="yes">
 	<title>Welcome to CodeIgniter</title>
-	<link rel="icon" type="image/svg+xml" href="<?= base_url(); ?>assets/images/logo2.svg">
+	<link rel="icon" type="image/png" href="<?= base_url(); ?>assets/images/logo1.png">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	
 	<style>
@@ -41,6 +41,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 	<script type="text/javascript" src="<?php echo base_url(); ?>assets/ext-7.0.0/build/ext-all.js"></script>
 	<script type="text/javascript" src="<?php echo base_url(); ?>assets/jquery-4.0.0.min.js"></script>
 	<script type="text/javascript">
+		var menuLeftEmpty=<?= $menuLeft==''?'true':'false'; ?>;
 		function loadPage(){
 
 		}
@@ -72,7 +73,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 					border:false,
 					bodyBorder:false,
 					cls: 'c-menu ' + (isMobile?'c-menu-mobile':''),
-					hidden: menuVisible ? false : true,
+					hidden: menuVisible && !menuLeftEmpty ? false : true,
 					bbar:[buttonMenuBack],
 					html: '<div style="padding:15px;">' +
 						'<ul style="list-style:none; padding:0;">' +
@@ -83,7 +84,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 						'<li style="padding:10px 0;">🖼️ Media</li>' +
 						'</ul></div>'
 				});
-				var menuHoverPanel = Ext.create('Ext.Panel', {
+				var menuHoverPanel = Ext.create('Ext.Panel', {//
 					xtype: 'panel',
 					id:'menuHoverPanel',
 					border:false,
@@ -99,14 +100,14 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 					bodyBorder:false,
 					bodyPadding:false,
 					items:[
-						<?= $content ?>
+						<?= $contentType=='extjs'? $content : ''  ?>
 					],
 					html:$('#content').html(),
 				});
 				var buttonMenu=Ext.create('Ext.Button',{
 					xtype: 'button',
 					iconCls: 'x-fa fa-bars',
-					hidden: menuVisible ? true : false,
+					hidden: menuVisible || menuLeftEmpty ? true : false,
 					style: {
 						width: '50px', 
 						height: '50px',
@@ -123,22 +124,33 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 				var iconBigPanel = Ext.create('Ext.Panel', {
 					width: 250,
 					flex:1,
+					id:"logo2",
+					// bodyStyle: {
+					// 	height: '50px',
+					// },
 					hidden: menuVisible ? false : true,
 					border:false,
 					bodyBorder:false,
-					html: '<div style="display: flex;align-items: center;margin-top: 5px;"><img style="width: 40px;margin-left: 10px;" src="<?= base_url(); ?>assets/images/logo2.svg"><div style="padding-left: 10px;border-left: 2px solid #34a9dd;margin-left: 10px;"><h3 style="margin-block-start: 0px;margin-block-end: 0px;">System Persediaan<br>PT Fajar Alam Scientific</h3></div></div>'
+					html: '<div style="display: flex;align-items: center;margin-top: 5px;"><img style="height: 40px;margin-left: 10px;" src="<?= base_url(); ?>assets/images/logo1.png"><img style="height: 40px;margin-left: 10px;" src="<?= base_url(); ?>assets/images/logo_title.png"></div>'
 				});
 				var iconBigPanelCenter = Ext.create('Ext.Panel', {
+					id:"logo1",
 					hidden: menuVisible ? true : false,
 					border:false,
+					flex:1,
+					height:50,
 					bodyBorder:false,
-					html: '<img src="<?= base_url(); ?>assets/images/logo2.svg">'
+					html: '<img style="height: 40px;margin-top:5px;" src="<?= base_url(); ?>assets/images/logo_title.png">'
 				});
 				var headerPanel=Ext.create('Ext.Panel',{
 					layout: 'hbox',
 					width: '100%',
 					height:50,
-					scrollable:true,
+					id:"logo3",
+					// bodyStyle: {
+					// 	height: '50px',
+					// },
+					//scrollable:true,
 					border:false,
 					bodyBorder:false,
 					items: [
@@ -212,12 +224,18 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 					if (width <= 768) {
 						menuPanel.hide();
 						menuPanel.addCls('c-menu-mobile');
-						buttonMenu.show();
+						if(menuLeftEmpty==false){
+							buttonMenu.show();
+						}
 						iconBigPanel.hide();
 						iconBigPanelCenter.show();
 					} else {
-						menuPanel.show();
-						menuPanel.removeCls('c-menu-mobile');
+						if(menuLeftEmpty==false){
+							menuPanel.show();
+							menuPanel.removeCls('c-menu-mobile');
+							
+						}
+						
 						buttonMenu.hide();
 						menuHoverPanel.hide();
 						iconBigPanel.show();
@@ -231,6 +249,8 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 					menuPanel.hide();
 					menuHoverPanel.hide();
 				});
+				// headerPanel.setHeight(50);
+				iconBigPanel.setHeight(50);
 			}
 		});
 	</script>

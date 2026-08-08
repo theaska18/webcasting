@@ -54,6 +54,6 @@ $route['cpanel/(:any)/(:any)'] = 'cpanel/index/$1/$2';
 $route['cast/(:any)'] = 'cast/index/$1';  
 $route['view/(:any)'] = 'view/index/$1';  
 
-$route['default_controller'] = 'welcome';
+$route['default_controller'] = 'main';
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;

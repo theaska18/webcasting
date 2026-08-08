@@ -1,10 +1,4 @@
-<!DOCTYPE html>
-    <html>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>WebCast | <?= $roomName; ?></title>
-        <link rel="icon" type="image/png" href="<?= base_url(); ?>assets/images/logo1.png">
-        <script src='https://jitsi.ckamal.com/external_api.js'></script>
+
         <style>
           html, body {
             margin: 0;
@@ -18,8 +12,7 @@
             width: 100%;
           }
         </style>
-      </head>
-      <body>
+        <script src='https://jitsi.ckamal.com/external_api.js'></script>
         <div id="video-meet" ref="apiRef" />
         <script>
           const domain = 'jitsi.ckamal.com';
@@ -65,5 +58,3 @@
                 location.reload();
             });
         </script>
-      </body>
-    </html>
