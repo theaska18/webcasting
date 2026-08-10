@@ -8,6 +8,10 @@
         <script src="https://cdn.tailwindcss.com"></script>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <script type="text/javascript" src="<?php echo base_url(); ?>assets/jquery-4.0.0.min.js"></script>
+        <script>
+            $(function(){});
+        </script>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
         <style>
         body{
@@ -25,7 +29,7 @@
         ?>
         <main class="flex-1 ">
             <!-- HERO -->
-            <section class="bg-slate-50">
+            <section>
                 <?php
                     if(isset($view)){
                         $this->load->view($view);

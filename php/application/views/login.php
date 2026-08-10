@@ -1,4 +1,4 @@
-<div class="bg-gradient-to-br flex items-center justify-center px-6 py-10">
+<div class="flex items-center justify-center px-6 py-10">
 
     <div class="w-full max-w-md">
 
@@ -20,7 +20,7 @@
         </div>
 
         <!-- Login Card -->
-        <div class="bg-white rounded-3xl shadow-2xl border border-slate-200 p-8">
+        <div class="bg-white rounded-3xl border border-slate-200 p-8">
 
             <!-- Username -->
             <div class="mb-6">

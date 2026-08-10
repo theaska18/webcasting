@@ -6,11 +6,11 @@
             <!-- Logo -->
             <a href="<?= base_url(); ?>" class="flex items-center gap-3 flex-shrink-0">
                 <img src="<?= base_url(); ?>assets/images/logo1.png"
-                     class="w-10 h-10"
+                     class="w-10 h-10 hidden sm:block"
                      alt="Logo">
 
                 <img src="<?= base_url(); ?>assets/images/logo_title.png"
-                     class="h-9 hidden sm:block"
+                     class="h-9"
                      alt="Webcasting Expert">
             </a>
 

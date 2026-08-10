@@ -1,5 +1,31 @@
-<div class="bg-white shadow-2xl overflow-hidden">
-
+<div class="bg-white overflow-hidden">
+<script>
+    var joinType="host";
+    var hostName="<?= $hostName; ?>";
+    var presenterName="<?= $presenterName; ?>";
+    var audienceName="<?= $audienceName; ?>";
+    var jwtHost="<?= $jwtHost; ?>";
+    var jwtPresenter="<?= $jwtPresenter; ?>";
+    var jwtAudience="<?= $jwtAudience; ?>";
+    function handleRoleChange(el) {
+        console.log("Selected:", el.value);
+        joinType=el.value;
+        if (el.value === "host") {
+            $('#inputName').val(hostName);
+        }else if(el.value === "presenter"){
+            $('#inputName').val(presenterName);
+        }else if(el.value === "audience"){
+            $('#inputName').val(audienceName);
+        }
+    }
+    function openJoin(){
+        if(joinType=='host'){
+            window.open('<?= base_url();?>cast/<?= $roomName; ?>/'+jwtHost);
+        }else if(joinType=='presenter'){
+            window.open('<?= base_url();?>cast/<?= $roomName; ?>/'+jwtPresenter);
+        }
+    }
+</script>
     <div class="grid lg:grid-cols-5">
 
         <!-- Left Panel -->
@@ -105,7 +131,7 @@
             <div class="w-full">
 
                 <h3 class="text-3xl font-bold text-slate-800">
-                    Join Webcast
+                    Join Webcast Conference
                 </h3>
 
                 <p class="text-slate-500 mt-3 leading-7">
@@ -126,11 +152,12 @@
 
                         <input
                             type="text"
+                            value="<?= $roomName; ?>"
                             placeholder="e.g. annual-townhall-2026"
                             class="w-full rounded-xl border border-slate-300 px-5 py-3
                                    focus:ring-4 focus:ring-blue-100
                                    focus:border-[#2A83F8]
-                                   outline-none">
+                                   outline-none" readOnly>
 
                     </div>
 
@@ -144,11 +171,13 @@
 
                         <input
                             type="text"
+                            id="inputName"
+                            value="<?= $hostName;?>"
                             placeholder="Enter your name"
                             class="w-full rounded-xl border border-slate-300 px-5 py-3
                                    focus:ring-4 focus:ring-blue-100
                                    focus:border-[#2A83F8]
-                                   outline-none">
+                                   outline-none" readOnly>
 
                     </div>
 
@@ -171,6 +200,7 @@
                                     name="role"
                                     value="host"
                                     class="peer hidden"
+                                    onchange="handleRoleChange(this)"
                                     checked>
 
                                 <div class="rounded-2xl border-2 border-slate-200 p-5 text-center transition
@@ -199,7 +229,7 @@
                                     type="radio"
                                     name="role"
                                     value="presenter"
-                                    class="peer hidden">
+                                    class="peer hidden" onchange="handleRoleChange(this)">
 
                                 <div class="rounded-2xl border-2 border-slate-200 p-5 text-center transition
                                             peer-checked:border-[#FF7A1A]
@@ -227,6 +257,7 @@
                                     type="radio"
                                     name="role"
                                     value="audience"
+                                    onchange="handleRoleChange(this)"
                                     class="peer hidden">
 
                                 <div class="rounded-2xl border-2 border-slate-200 p-5 text-center transition
@@ -261,7 +292,7 @@
                                to-[#FF7A1A]
                                hover:shadow-xl
                                hover:scale-[1.01]
-                               transition-all duration-300">
+                               transition-all duration-300" onclick="openJoin()">
 
                         Join Webcast →
 

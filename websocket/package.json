@@ -1,8 +1,13 @@
 {
   "name": "websocket-server",
   "version": "1.0.0",
+  "description": "Native WebSocket Server",
   "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
-    "socket.io": "^4.7.2"
+    "jsonwebtoken": "^9.0.2",
+    "ws": "^8.18.3"
   }
 }

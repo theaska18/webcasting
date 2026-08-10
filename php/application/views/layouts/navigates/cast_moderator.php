@@ -1,18 +1,51 @@
 <div class="flex items-center justify-between h-20">
+    <button id="menuButtonLeft"
+            class="md:hidden p-2 rounded-lg hover:bg-slate-100">
 
+        <svg xmlns="http://www.w3.org/2000/svg"
+             class="w-7 h-7"
+             fill="none"
+             viewBox="0 0 24 24"
+             stroke="currentColor">
+
+            <path stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 6h16M4 12h16M4 18h16"/>
+
+        </svg>
+
+    </button>
     <!-- Logo -->
-    <a href="<?= base_url(); ?>" class="flex items-center gap-3 flex-shrink-0 ml-2">
+    <a href="#" class="flex items-center gap-3 flex-shrink-0 ml-2">
 
         <img src="<?= base_url(); ?>assets/images/logo1.png"
              class="w-10 h-10"
              alt="Logo">
 
         <img src="<?= base_url(); ?>assets/images/logo_title.png"
-             class="h-9 hidden lg:block"
+             class="h-9 hidden md:block"
              alt="Infinity Webcast">
+             <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+
+        <span class="relative flex h-3 w-3">
+            <span class="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
+            <span class="relative inline-flex h-3 w-3 rounded-full bg-red-500"></span>
+        </span>
+
+        <div>
+            <div class="text-xs text-slate-500 uppercase tracking-wide">
+                Stream Status
+            </div>
+            <div class="text-sm font-semibold text-red-600">
+                Offline
+            </div>
+        </div>
+
+    </div>
 
     </a>
-
+    
     <!-- Right Action -->
     <div class="hidden xl:flex items-center gap-2">
 
@@ -21,49 +54,24 @@
         <!-- Right Control Bar -->
         <div class="hidden xl:flex items-center gap-3">
 
-            <!-- Status -->
-            <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
-
-                <span class="relative flex h-3 w-3">
-                    <span class="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
-                    <span class="relative inline-flex h-3 w-3 rounded-full bg-red-500"></span>
-                </span>
-
-                <div>
-                    <div class="text-xs text-slate-500 uppercase tracking-wide">
-                        Stream Status
-                    </div>
-                    <div class="text-sm font-semibold text-red-600">
-                        Offline
-                    </div>
-                </div>
-
-            </div>
-
             <!-- Divider -->
             <div class="h-8 w-px bg-slate-200"></div>
-
-            <!-- Preview -->
-            <button
-                class="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition">
-
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    class="w-5 h-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0zm6 0s-3.5 7-9 7-9-7-9-7 3.5-7 9-7 9 7 9 7z"/>
-                </svg>
-
-                Preview
-
-            </button>
-
+<?php
+    if($isModerator){
+?>
+            <script>
+                function startStream() {
+                showPrompt(
+                        "Start Stream",
+                        "Are you sure you want to start broadcasting?",
+                        () => {
+                            console.log("START STREAM");
+                        }
+                    );
+                }
+            </script>
             <!-- Start Stream -->
-            <button
+            <button onclick="startStream()" 
                 class="flex items-center gap-2 rounded-xl bg-green-600 hover:bg-green-700 px-5 py-2.5 text-white text-sm font-semibold shadow-lg shadow-green-600/20 transition">
 
                 <svg xmlns="http://www.w3.org/2000/svg"
@@ -76,10 +84,20 @@
                 Start Stream
 
             </button>
-
+            <script>
+                function stopStream() {
+                showPrompt(
+                        "Stop Stream",
+                        "Are you sure you want to end the broadcast?",
+                        () => {
+                            console.log("START STREAM");
+                        }
+                    );
+                }
+            </script>
             <!-- Stop Stream -->
-            <button
-                class="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 px-5 py-2.5 text-red-600 text-sm font-semibold transition">
+            <button onclick="stopStream()"
+                class="flex hidden items-center gap-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 px-5 py-2.5 text-red-600 text-sm font-semibold transition">
 
                 <svg xmlns="http://www.w3.org/2000/svg"
                     class="w-5 h-5"
@@ -93,7 +111,7 @@
             </button>
 
             <!-- Start Recording -->
-            <button
+            <button disabled
                 class="flex items-center gap-2 rounded-xl bg-orange-500 hover:bg-orange-600 px-5 py-2.5 text-white text-sm font-semibold shadow-lg shadow-orange-500/20 transition">
 
                 <span class="w-3 h-3 rounded-full bg-white"></span>
@@ -104,7 +122,7 @@
 
             <!-- Stop Recording -->
             <button
-                class="flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 px-5 py-2.5 text-orange-700 text-sm font-semibold transition">
+                class="flex items-center hidden gap-2 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 px-5 py-2.5 text-orange-700 text-sm font-semibold transition">
 
                 <svg xmlns="http://www.w3.org/2000/svg"
                     class="w-5 h-5"
@@ -116,9 +134,20 @@
                 Stop Recording
 
             </button>
-
+            <script>
+                function endCast() {
+                showPrompt(
+                        "End Cast",
+                        "Are you sure you want to End Cast?",
+                        () => {
+                            console.log("End Cast");
+                            window.close();
+                        }
+                    );
+                }
+            </script>
             <!-- End Cast -->
-            <button
+            <button  onclick="endCast()"
                 class="flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-black px-5 py-2.5 text-white text-sm font-semibold shadow-lg transition">
 
                 <svg xmlns="http://www.w3.org/2000/svg"
@@ -135,9 +164,45 @@
                 End Cast
 
             </button>
+<?php
+    }else{
+?>
+            <script>
+                function leftCast() {
+                showPrompt(
+                        "Left Cast",
+                        "Are you sure you want to Left Cast?",
+                        () => {
+                            console.log("End Cast");
+                            window.close();
+                        }
+                    );
+                }
+            </script>
+            <!-- End Cast -->
+            <button  onclick="leftCast()"
+                class="flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-black px-5 py-2.5 text-white text-sm font-semibold shadow-lg transition">
 
-        </div>
+                <svg xmlns="http://www.w3.org/2000/svg"
+                    class="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M6 18L18 6M6 6l12 12"/>
+                </svg>
 
+                Left Cast
+
+            </button>
+
+        
+<?php
+    }
+?>
+</div>
         <!-- User -->
 
         <div class="ml-3 flex items-center gap-3 border-l pl-4 mr-2">
@@ -152,13 +217,13 @@
 
                 <div class="text-sm font-semibold text-slate-800">
 
-                    Asep Kamaludin
+                    <?= $jwtData['user']['name']; ?>
 
                 </div>
 
                 <div class="text-xs text-slate-500">
 
-                    Administrator
+                    <?= $isModerator?'Host':'Presenter'; ?>
 
                 </div>
 
@@ -196,12 +261,14 @@
      class="hidden xl:hidden border-t bg-white">
 
     <div class="p-6 space-y-3">
-
-        <button class="w-full rounded-xl bg-green-600 text-white py-3 font-semibold">
+<?php
+    if($isModerator){
+?>
+        <button  onclick="startStream()" class="w-full rounded-xl bg-green-600 text-white py-3 font-semibold">
             ▶ Start Stream
         </button>
 
-        <button class="w-full rounded-xl bg-red-600 text-white py-3 font-semibold">
+        <button  onclick="stopStream()" class="w-full hidden rounded-xl bg-red-600 text-white py-3 font-semibold">
             ■ Stop Stream
         </button>
 
@@ -209,22 +276,35 @@
             ⏺ Start Record
         </button>
 
-        <button class="w-full rounded-xl bg-orange-700 text-white py-3 font-semibold">
+        <button class="w-full rounded-xl hidden bg-orange-700 text-white py-3 font-semibold">
             ■ Stop Record
         </button>
 
-        <button class="w-full rounded-xl bg-slate-900 text-white py-3 font-semibold">
+        <button   onclick="endCast()" class="w-full rounded-xl bg-slate-900 text-white py-3 font-semibold">
             End Cast
         </button>
-
+<?php
+    }else{
+?>
+        <button  onclick="leftCast()" class="w-full rounded-xl bg-slate-900 text-white py-3 font-semibold">
+            Left Cast
+        </button>
+<?php
+    }
+?>
     </div>
 
 </div>
 <script>
 const menuButton = document.getElementById('menuButton');
+const menuButtonLeft = document.getElementById('menuButtonLeft');
 const mobileMenu = document.getElementById('mobileMenu');
+const sidebar = document.getElementById('sidebar');
 
 menuButton.addEventListener('click', () => {
     mobileMenu.classList.toggle('hidden');
+});
+menuButtonLeft.addEventListener('click', () => {
+    toggleSidebar();
 });
 </script>

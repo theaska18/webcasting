@@ -52,6 +52,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 $route['cpanel/(:any)'] = 'cpanel/index/$1';  
 $route['cpanel/(:any)/(:any)'] = 'cpanel/index/$1/$2';
 $route['cast/(:any)'] = 'cast/index/$1';  
+$route['cast/(:any)/(:any)'] = 'cast/index/$1/$2';  
 $route['view/(:any)'] = 'view/index/$1';  
 
 $route['default_controller'] = 'main';
