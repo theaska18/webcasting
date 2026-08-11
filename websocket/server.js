@@ -113,7 +113,7 @@ wss.on('connection', (ws, req) => {
 
         }
 	wss.clients.forEach(client => { 
-		if ( client.readyState === WebSocket.OPEN && client.room === room ) { 
+		if (client !== ws && client.readyState === WebSocket.OPEN ) { 
 			client.send(message.toString()); 
 		} 
 	});

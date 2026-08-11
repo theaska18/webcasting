@@ -4,8 +4,8 @@ let ws = null;
 let reconnectTimer = null;
 
 const servers = [
-    "wss://103.119.63.137:13000/test",
-    "wss://192.168.1.2:13000/test"
+    "wss://103.119.63.137:13000/webcast/<?= $roomName; ?>/",
+    "wss://192.168.1.2:13000/webcast/<?= $roomName; ?>/"
 ];
 
 let serverIndex = 0;
@@ -98,10 +98,10 @@ connect();
             parentNode: document.querySelector("#video-meet"),
             // noSsl: 'true',
             configOverwrite: {
-              pollCreationRequiresPermission: true,
+              // pollCreationRequiresPermission: true,
                 toolbarButtons: [
                      'camera',
-       'chat',
+      //  'chat',
        'closedcaptions',
        'desktop',
        'download',
@@ -117,18 +117,18 @@ connect();
        'linktosalesforce',
       //  'livestreaming',
        'microphone',
-       'noisesuppression',
+      //  'noisesuppression',
        'participants-pane',
       //  'profile',
        'raisehand',
       //  'recording',
       //  'security',
-       'select-background',
+      //  'select-background',
        'settings',
       //  'shareaudio',
       //  'sharedvideo',
-       'shortcuts',
-       'stats',
+      //  'shortcuts',
+      //  'stats',
        'tileview',
        'toggle-camera',
        'videoquality',
