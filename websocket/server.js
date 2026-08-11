@@ -1,124 +1,104 @@
-const fs = require('fs');
-const https = require('https');
-const jwt = require('jsonwebtoken');
-const WebSocket = require('ws');
-
+const fs = require("fs");
+const https = require("https");
+const jwt = require("jsonwebtoken");
+const WebSocket = require("ws");
 const JWT_SECRET = process.env.JWT_SECRET || "webcast";
-
 const server = https.createServer({
-    key: fs.readFileSync('/ssl/server.key'),
-    cert: fs.readFileSync('/ssl/server.crt')
+	key: fs.readFileSync("/ssl/server.key"),
+	cert: fs.readFileSync("/ssl/server.crt"),
 });
-
 const wss = new WebSocket.Server({
-    server,
-    maxPayload: 16 * 1024
+	server,
+	maxPayload: 16 * 1024,
 });
+wss.on("connection", (ws, req) => {
+	const url = new URL(req.url, "https://localhost");
+	ws.room = url.pathname.replace(/^\/+/, "");
 
-wss.on('connection', (ws, req) => {
+	ws.user = null;
+	ws.authenticated = false;
 
-    const url = new URL(req.url, "https://localhost");
-    ws.room = url.pathname.replace(/^\/+/, "");
+	console.log(`Client Connected -> Room : ${ws.room}`);
 
-    ws.user = null;
-    ws.authenticated = false;
+	ws.send(
+		JSON.stringify({
+			type: "welcome",
+			room: ws.room,
+			message: "Please login.",
+		}),
+	);
 
-    console.log(`Client Connected -> Room : ${ws.room}`);
+	ws.on("message", (message) => {
+		let data;
 
-    ws.send(JSON.stringify({
-        type: "welcome",
-        room: ws.room,
-        message: "Please login."
-    }));
+		try {
+			data = JSON.parse(message.toString());
+		} catch {
+			ws.send(
+				JSON.stringify({
+					type: "error",
+					message: "Invalid JSON",
+				}),
+			);
 
-    ws.on("message", (message) => {
+			return;
+		}
+		if (data.action === "auth") {
+			if (!data.token) {
+				ws.send(
+					JSON.stringify({
+						type: "auth",
+						success: false,
+						message: "Token required",
+					}),
+				);
 
-        let data;
+				return;
+			}
+			try {
+				const payload = jwt.verify(data.token, JWT_SECRET);
 
-        try {
-            data = JSON.parse(message.toString());
-        } catch {
+				ws.user = payload;
+				ws.authenticated = true;
 
-            ws.send(JSON.stringify({
-                type: "error",
-                message: "Invalid JSON"
-            }));
+				console.log(`Login : ${payload.name} (${payload.role})`);
 
-            return;
-        }
+				ws.send(
+					JSON.stringify({
+						type: "auth",
+						success: true,
+						user: {
+							id: payload.id,
+							name: payload.name,
+							role: payload.role,
+						},
+					}),
+				);
+			} catch {
+				ws.send(
+					JSON.stringify({
+						type: "auth",
+						success: false,
+						message: "Invalid JWT",
+					}),
+				);
 
-        //----------------------------------
-        // LOGIN
-        //----------------------------------
+				ws.close(1008, "Unauthorized");
+			}
 
-        if (data.action === "auth") {
-
-            if (!data.token) {
-
-                ws.send(JSON.stringify({
-                    type: "auth",
-                    success: false,
-                    message: "Token required"
-                }));
-
-                return;
-
-            }
-
-            try {
-
-                const payload = jwt.verify(
-                    data.token,
-                    JWT_SECRET
-                );
-
-                ws.user = payload;
-                ws.authenticated = true;
-
-                console.log(
-                    `Login : ${payload.name} (${payload.role})`
-                );
-
-                ws.send(JSON.stringify({
-                    type: "auth",
-                    success: true,
-                    user: {
-                        id: payload.id,
-                        name: payload.name,
-                        role: payload.role
-                    }
-                }));
-
-            } catch {
-
-                ws.send(JSON.stringify({
-                    type: "auth",
-                    success: false,
-                    message: "Invalid JWT"
-                }));
-
-                ws.close(1008, "Unauthorized");
-            }
-
-            return;
-        }
-
-        //----------------------------------
-        // BELUM LOGIN
-        //----------------------------------
-
-        if (!ws.authenticated) {
-		ws.close(1008, "Authentication required");
-            return;
-
-        }
-	wss.clients.forEach(client => { 
-		if (client !== ws && client.readyState === WebSocket.OPEN ) { 
-			client.send(message.toString()); 
-		} 
+			return;
+		}
+		if (!ws.authenticated) {
+			ws.close(1008, "Authentication required");
+			return;
+		}
+		wss.clients.forEach((client) => {
+			if (client !== ws && client.readyState === WebSocket.OPEN) {
+				client.send(message.toString());
+			}
+		});
 	});
-    });
 });
 server.listen(3000, () => {
-    console.log("WebSocket running on 3000");
+	console.log("WebSocket running on 3000");
 });

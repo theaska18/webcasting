@@ -15,7 +15,7 @@
         }
         </style>
     </head>
-    <body class="h-screen flex flex-col overflow-hidden bg-slate-100">
+    <body class="h-screen flex flex-col bg-slate-100">
         <?php
             $this->load->view('layouts/common');
             if(isset($navigate)==null){

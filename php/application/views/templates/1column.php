@@ -6,18 +6,10 @@
         <link rel="icon" type="image/png" href="<?= base_url(); ?>assets/images/logo1.png">
         <title>Template | Webcasting</title>
         <script src="https://cdn.tailwindcss.com"></script>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <script type="text/javascript" src="<?php echo base_url(); ?>assets/jquery-4.0.0.min.js"></script>
+        <script type="text/javascript" src="<?= base_url(); ?>assets/jquery-4.0.0.min.js"></script>
         <script>
             $(function(){});
         </script>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-        <style>
-        body{
-            font-family:Inter,sans-serif;
-        }
-        </style>
     </head>
     <body class="min-h-screen flex flex-col bg-slate-50 bg-gradient-to-b from-white via-blue-100 to-white">
         <?php

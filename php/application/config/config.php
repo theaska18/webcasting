@@ -24,8 +24,22 @@ date_default_timezone_set('UTC');
 |
 */
 // Deteksi protocol (http atau https)
-$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
-$config['base_url'] = $protocol . '://' . $_SERVER['HTTP_HOST'] . str_replace(basename($_SERVER['SCRIPT_NAME']), '', $_SERVER['SCRIPT_NAME']);
+$isHttps =
+    (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+    (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) &&
+     $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
+$protocol = $isHttps ? 'https' : 'http';
+
+$config['base_url'] = $protocol . '://' .
+    $_SERVER['HTTP_HOST'] .
+    str_replace(
+        basename($_SERVER['SCRIPT_NAME']),
+        '',
+        $_SERVER['SCRIPT_NAME']
+    );
+// $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
+// $config['base_url'] = $protocol . '://' . $_SERVER['HTTP_HOST'] . str_replace(basename($_SERVER['SCRIPT_NAME']), '', $_SERVER['SCRIPT_NAME']);
 /*
 |--------------------------------------------------------------------------
 | Index File

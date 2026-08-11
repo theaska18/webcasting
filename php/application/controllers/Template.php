@@ -20,6 +20,7 @@ class Template extends CI_Controller {
 	 */
 	public function index()
 	{
-		$this->load->view('templates/3column',array('view'=>'tamplate'));
+		       
+	 	       $this->load->view('templates/3column',array('view'=>'tamplate'));
 	}
 }

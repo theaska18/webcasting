@@ -1,11 +1,6 @@
 RewriteEngine On
 
-# Redirect untuk semua Ext/* requests
-#RewriteCond %{REQUEST_FILENAME} !-f
-#RewriteCond %{REQUEST_FILENAME} !-d
-#RewriteRule ^Ext/(.+)\.js$ assets/ext-7.0.0/modern/modern/src/$1.js [L,NC]
-
-
+# CodeIgniter
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php/$1 [L]
