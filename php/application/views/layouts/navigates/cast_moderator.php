@@ -1,3 +1,12 @@
+<script>
+	var allowClose=false;
+	window.addEventListener("beforeunload", function (e) {
+		if(allowClose==false){
+			e.preventDefault();
+			e.returnValue = "";
+		}
+	});
+</script>
 <div class="flex items-center justify-between h-20">
     <button id="menuButtonLeft"
             class="md:hidden p-2 rounded-lg hover:bg-slate-100">
@@ -25,7 +34,7 @@
 
         <img src="<?= base_url(); ?>assets/images/logo_title.png"
              class="h-9 hidden md:block"
-             alt="Infinity Webcast">
+             alt="Ckamal Webcast">
              <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
 
         <span class="relative flex h-3 w-3">
@@ -141,6 +150,7 @@
                         "Are you sure you want to End Cast?",
                         () => {
                             console.log("End Cast");
+							allowClose=true;
                             window.close();
                         }
                     );
@@ -174,6 +184,7 @@
                         "Are you sure you want to Left Cast?",
                         () => {
                             console.log("End Cast");
+							allowClose=true;
                             window.close();
                         }
                     );
@@ -217,13 +228,13 @@
 
                 <div class="text-sm font-semibold text-slate-800">
 
-                    <?= $jwtData['user']['name']; ?>
+                    <?php //$jwtData['user']['name']; ?>
 
                 </div>
 
                 <div class="text-xs text-slate-500">
 
-                    <?= $isModerator?'Host':'Presenter'; ?>
+                    <?php //$isModerator?'Host':'Presenter'; ?>
 
                 </div>
 

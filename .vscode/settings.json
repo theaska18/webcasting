@@ -8,5 +8,22 @@
 	"prettier.useTabs": true,
 	"prettier.tabWidth": 4,
 
-	"prettier.printWidth": 200
+	"prettier.printWidth": 200,
+	"sqltools.connections": [
+		{
+			"mysqlOptions": {
+				"authProtocol": "default",
+				"enableSsl": "Disabled"
+			},
+			"ssh": "Disabled",
+			"previewLimit": 50,
+			"server": "192.168.1.2",
+			"port": 3306,
+			"driver": "MySQL",
+			"name": "Local",
+			"database": "ckamal_db",
+			"username": "ckamal",
+			"password": "ckamal123"
+		}
+	]
 }

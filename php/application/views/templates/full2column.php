@@ -9,6 +9,7 @@
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+		<script type="text/javascript" src="<?= base_url(); ?>assets/jquery-4.0.0.min.js"></script>
         <style>
         body{
             font-family:Inter,sans-serif;

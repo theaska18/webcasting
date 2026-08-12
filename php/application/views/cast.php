@@ -1,11 +1,102 @@
+<?php
+	$ci =& get_instance();
+	$host = $ci->db
+        ->where('event_id', $eventData->event_id)
+        ->where('moderator_flag', 1)
+        ->limit(1)
+        ->get('cast_event_user')
+        ->row();
+	$readyJoinFlag = false;
+	$isWaitingModerator=false;
+	if ($eventData->moderator_flag == 1) {
+		$readyJoinFlag = true;
+	} else {
+		if (!empty($eventData->last_moderator_join)) {
+			$lastJoin = strtotime($eventData->last_moderator_join);
+			if ($lastJoin !== false && (time() - $lastJoin) <= 10) {
+				$readyJoinFlag = true;
+			}else{
+				$isWaitingModerator=true;
+			}
+		}else{
+			$isWaitingModerator=true;
+		}
+	}
+	function format_duration($time){
+		if (empty($time)) {
+			return '-';
+		}
 
+		list($hour, $minute, $second) = explode(':', $time);
+
+		$result = [];
+
+		if ((int)$hour > 0) {
+			$result[] = (int)$hour . ' Hour' . ((int)$hour > 1 ? 's' : '');
+		}
+
+		if ((int)$minute > 0) {
+			$result[] = (int)$minute . ' Minute' . ((int)$minute > 1 ? 's' : '');
+		}
+
+		if ((int)$second > 0) {
+			$result[] = (int)$second . ' Second' . ((int)$second > 1 ? 's' : '');
+		}
+
+		if (empty($result)) {
+			return '0 Second';
+		}
+
+		return implode(' ', $result);
+	}
+?>
 <script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    const offsetMinutes = -new Date().getTimezoneOffset();
+
+    const sign = offsetMinutes >= 0 ? "+" : "-";
+
+    const hours = String(Math.floor(Math.abs(offsetMinutes) / 60)).padStart(2, "0");
+
+    const minutes = String(Math.abs(offsetMinutes) % 60).padStart(2, "0");
+
+    document.getElementById("userTimezone").textContent =
+        `${timezone} (GMT ${sign}${hours}:${minutes})`;
+
+
+		const dateElement = document.getElementById("eventDate");
+    const timeElement = document.getElementById("eventTime");
+
+    const start = new Date(dateElement.dataset.start);
+    const end = new Date(timeElement.dataset.end);
+
+    dateElement.textContent = start.toLocaleDateString(undefined, {
+        day: "2-digit",
+        month: "long",
+        year: "numeric"
+    });
+
+    const timeOptions = {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+    };
+
+    timeElement.textContent =
+        `${start.toLocaleTimeString([], timeOptions)} - ${end.toLocaleTimeString([], timeOptions)}`;
+
+});
+var invitationCode='<?= $eventData->invitation_code; ?>';
 let ws = null;
 let reconnectTimer = null;
+var isWaitingModerator=<?= $isWaitingModerator==true?'true':'false'; ?>
 
 const servers = [
-    "wss://103.119.63.137:13000/webcast/<?= $roomName; ?>/",
-    "wss://192.168.1.2:13000/webcast/<?= $roomName; ?>/"
+    "wss://103.119.63.137:13000/webcast/<?= $eventData->event_code; ?>/",
+    "wss://192.168.1.2:13000/webcast/<?= $eventData->event_code; ?>/"
 ];
 
 let serverIndex = 0;
@@ -32,13 +123,20 @@ function connect() {
         ws.send(JSON.stringify({
 
             action: "auth",
-            token: '<?= $jwt; ?>',
+            token: '<?= $jwtWs; ?>',
 
         }));
     };
 
     ws.onmessage = (event) => {
-        console.log("Receive:", event.data);
+		console.log(JSON.parse(event.data));
+		var action=JSON.parse(event.data).action;
+		
+		if(action=='MODERATOR_JOIN' && isWaitingModerator==true){
+			isWaitingModerator==false;
+			moderatorReady();
+		}
+        
     };
 
     ws.onerror = (error) => {
@@ -72,22 +170,78 @@ function connect() {
 
     };
 }
+function moderatorReady()
+{
+    const button = document.getElementById("joinButton");
 
+    button.disabled = false;
+
+    button.className =
+        "flex-1 h-14 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition";
+
+    button.innerHTML = "Join Webcast";
+
+    button.onclick = readyJoinWebcast;
+
+	const joinStatusTop = document.getElementById("joinStatusTop");
+
+    joinStatusTop.className =
+        "inline-flex items-center gap-2 rounded-full bg-green-100 text-green-700 px-4 py-2 text-sm font-semibold";
+
+    joinStatusTop.innerHTML = `
+        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+        Ready to Join
+    `;
+	document.getElementById("joinStatusBottom").innerHTML = `
+    <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+
+    <span class="font-semibold">
+        Ready to Join
+    </span>
+`;
+}
+function readyJoinWebcast(){
+	showPrompt(
+		"Join Webcast",
+		"Are you sure you want to Join Webcast?",
+		() => {
+			showLoading();
+			joinWebcast();
+		}
+	);
+}
 connect();
-</script>
-        <style>
-          #video-meet {
-            height: 100%;
-            width: 100%;
-          }
-        </style>
-        <script src='https://jitsi.ckamal.com/external_api.js'></script>
-        <div id="video-meet" ref="apiRef" />
-        <script>
-          const domain = 'jitsi.ckamal.com';
+function joinWebcast(){
+	$.ajax({
+		url: "<?= base_url() ; ?>cast/getaccess?invitation=<?= $eventData->invitation_code; ?>",
+		type: "GET",
+		dataType: "json",
+		data: {
+			invitation: '<?= $eventData->invitation_code; ?>'
+		},
+		success: function(response){
+			document.getElementById("preJoinOverlay").classList.add("hidden");
+			hideLoading();
+			console.log("Response:", response);
+			//response.data.jwt
+			runConference(response.data.jwt);
+
+		},
+		error: function(xhr, status, error){
+			hideLoading();
+			console.error("Status :", status);
+			console.error("Error  :", error);
+			console.error("Response :", xhr.responseText);
+		}
+
+	});
+	
+}
+function runConference(jwt){
+	const domain = 'jitsi.ckamal.com';
           const options = {
-            roomName: '<?= $roomName; ?>',
-            jwt:'<?= $jwt; ?>',
+            roomName: '<?= $eventData->event_code; ?>',
+            jwt:jwt,
             parentNode: document.querySelector("#video-meet"),
             // noSsl: 'true',
             configOverwrite: {
@@ -150,7 +304,12 @@ connect();
 //             },
           };
           const api = new JitsiMeetExternalAPI(domain, options);
-      //     	api.addEventListener('videoConferenceJoined', () => {
+          	api.addEventListener('videoConferenceJoined', () => {
+				<?php if($isModerator){ ?>
+				ws.send(JSON.stringify({
+					action: "MODERATOR_JOIN"
+				}));
+				<?php } ?>
 			//    try {
       //               api.executeCommand('startRecording', {
       //                   mode: 'stream',
@@ -161,8 +320,529 @@ connect();
       //           } catch (e) {
       //               console.error('Failed to start streaming', e);
       //           }
-			// });
-            api.addListener('readyToClose', () => {
-                location.reload();
-            });
+			});
+            // api.addListener('readyToClose', () => {
+            //     location.reload();
+            // });
+}
+</script>
+        <style>
+          #video-meet {
+            height: 100%;
+            width: 100%;
+          }
+        </style>
+        <script src='https://jitsi.ckamal.com/external_api.js'></script>
+        <div id="video-meet" ref="apiRef" />
+        <script>
+          
         </script>
+
+
+<!-- =========================
+     PRE JOIN OVERLAY
+========================== -->
+<div id="preJoinOverlay"
+     class="fixed inset-0 z-[9999] bg-slate-950/70 backdrop-blur-md overflow-y-auto">
+
+    <div class="min-h-full flex items-center justify-center p-4 lg:p-8">
+
+        <div class="grid lg:grid-cols-5">
+
+            <!-- ===================================================== -->
+            <!-- LEFT -->
+            <!-- ===================================================== -->
+
+            <div class="lg:col-span-3 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white flex flex-col">
+
+				<!-- Header -->
+				<div class="flex items-center justify-between px-10 py-6 bg-white border-b border-slate-200">
+
+					<div class="flex items-center gap-4">
+
+						<img src="<?= base_url(); ?>assets/images/logo1.png"
+							class="w-14 h-14"
+							alt="Logo">
+
+						<img src="<?= base_url(); ?>assets/images/logo_title.png"
+							class="h-10"
+							alt="Logo Title">
+
+					</div>
+
+					<div class="flex items-center gap-3">
+					<?php
+						if($readyJoinFlag==true){
+					?>
+					<span class="inline-flex items-center gap-2 rounded-full bg-green-100 text-green-700 px-4 py-2 text-sm font-semibold">	
+							<span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+							Ready to Join
+						</span>
+					<?php
+						}else{
+					?>
+						<span id="joinStatusTop"
+							class="inline-flex items-center gap-2 rounded-full bg-red-100 text-red-700 px-4 py-2 text-sm font-semibold">
+
+							<span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+
+							Waiting for Moderator
+
+						</span>
+					<?php
+						}
+					?>
+						
+
+					</div>
+
+				</div>
+
+				<!-- Body -->
+				<div class="flex-1 flex flex-col justify-center px-12 py-12">
+
+					<span class="inline-flex w-fit px-4 py-1 rounded-full bg-blue-600 text-sm font-semibold">
+						LIVE WEBCAST
+					</span>
+
+					<h1 class="text-5xl font-bold mt-6 leading-tight">
+						<?= nl2br(html_escape($eventData->event_name));?>
+					</h1>
+
+					<p class="text-slate-300 text-lg mt-6 leading-8 max-w-3xl">
+						<?= nl2br(html_escape($eventData->event_desc)); ?>
+					</p>
+
+					<div class="grid grid-cols-2 xl:grid-cols-3 gap-5 mt-12">
+
+						<div class="rounded-xl bg-white/5 border border-white/10 p-5">
+							<div class="text-slate-400 text-sm">Organization</div>
+							<div class="font-semibold mt-2">
+								<?= nl2br(html_escape($eventData->organization)); ?>
+							</div>
+						</div>
+
+						<div class="rounded-xl bg-white/5 border border-white/10 p-5">
+							<div class="text-slate-400 text-sm">Organizer</div>
+							<div class="font-semibold mt-2">
+								CKamal Webcasting
+							</div>
+						</div>
+
+						<div class="rounded-xl bg-white/5 border border-white/10 p-5">
+							<div class="text-slate-400 text-sm">Language</div>
+							<div class="font-semibold mt-2">
+								English
+							</div>
+						</div>
+
+						<div class="rounded-xl bg-white/5 border border-white/10 p-5">
+							<div class="text-slate-400 text-sm">
+								Timezone
+							</div>
+
+							<div class="font-semibold mt-2" id="userTimezone">
+								Detecting...
+							</div>
+						</div>
+
+						<div class="rounded-xl bg-white/5 border border-white/10 p-5">
+							<div class="text-slate-400 text-sm">Duration</div>
+							<div class="font-semibold mt-2">
+								<?= format_duration($eventData->duration); ?>
+							</div>
+						</div>
+
+						<div class="rounded-xl bg-white/5 border border-white/10 p-5">
+							<div class="text-slate-400 text-sm">Status</div>
+
+							<div class="mt-2 inline-flex items-center gap-2">
+								<?php
+									if($readyJoinFlag==true){
+								?>
+								<span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+
+								<span class="font-semibold">
+									Ready to Join
+								</span>
+								<?php
+									}else{
+								?>
+									<span id="joinStatusBottom">
+
+										<span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+
+										<span class="font-semibold">
+											Waiting Moderator
+										</span>
+
+									</span>
+								<?php
+									}
+								?>
+							</div>
+
+						</div>
+
+					</div>
+
+					<!-- Features -->
+
+					<div class="mt-12">
+
+						<div class="text-lg font-semibold mb-5">
+							Event Session Features
+						</div>
+
+						<div class="grid grid-cols-2 xl:grid-cols-3 gap-4">
+							<?php if($eventData->record_allow==true){ ?>
+							<div class="bg-white/5 rounded-xl p-4 border border-white/10">
+								🎥 Recording Enabled
+							</div>
+							<?php } ?>
+							<?php if($eventData->event_message_allow==true){ ?>
+							<div class="bg-white/5 rounded-xl p-4 border border-white/10">
+								💬 Live Chat
+							</div>
+							<?php } ?>
+							<?php if($eventData->broadcast_allow==true){ ?>
+							<div class="bg-white/5 rounded-xl p-4 border border-white/10">
+								🌐 RTMP Streaming
+							</div>
+							<?php } ?>
+							<div class="bg-white/5 rounded-xl p-4 border border-white/10">
+								🔐 JWT Authentication
+							</div>
+							<?php if($eventData->event_pooling_allow==true){ ?>
+							<div class="bg-white/5 rounded-xl p-4 border border-white/10">
+								📊 Live Polling
+							</div>
+							<?php } ?>
+						</div>
+
+					</div>
+
+				</div>
+
+				<!-- Footer -->
+
+				<div class="border-t border-white/10 px-10 py-5 flex justify-between text-sm text-slate-400">
+
+					<span>
+						Powered by CKamal Webcasting Platform
+					</span>
+
+					<span>
+						Version 1.0.0
+					</span>
+
+				</div>
+
+			</div>
+
+            <!-- ===================================================== -->
+            <!-- RIGHT -->
+            <!-- ===================================================== -->
+
+            <div class="lg:col-span-2 p-8 bg-white">
+
+                <h2 class="text-3xl font-bold text-slate-900">
+                    Welcome
+                </h2>
+
+                <p class="text-slate-500 mt-2">
+                    Please review the webcast information before joining.
+                </p>
+
+                <!-- Your Access -->
+                <div class="mt-8 rounded-2xl border border-slate-200">
+
+                    <div class="border-b p-5">
+
+                        <h3 class="font-bold text-slate-900">
+                            Your Access
+                        </h3>
+
+                    </div>
+
+                    <div class="p-5 space-y-5">
+
+                        <div class="flex justify-between">
+
+                            <span class="text-slate-500">
+                                Name
+                            </span>
+
+                            <span class="font-semibold">
+                                <?= nl2br(html_escape($eventData->user_name)); ?>
+                            </span>
+
+                        </div>
+
+                        <div class="flex justify-between">
+
+                            <span class="text-slate-500">
+                                Role
+                            </span>
+
+                            <span class="font-semibold text-blue-600">
+                                <?php
+									if($isModerator){
+										echo 'Moderator';
+									}else if($eventData->participant_flag){
+										echo 'Participant';
+									}else{
+										echo 'Audience';
+									}
+								?>
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- Event -->
+                <div class="mt-6 rounded-2xl border border-slate-200">
+
+                    <div class="border-b p-5">
+
+                        <h3 class="font-bold text-slate-900">
+                            Event Information
+                        </h3>
+
+                    </div>
+
+                    <div class="p-5 space-y-4">
+
+                        <div class="flex justify-between">
+
+                            <span class="text-slate-500">
+                                Host
+                            </span>
+
+                            <span class="font-semibold">
+                                <?= $host != null?$host->user_name:'not yet determined'; ?>
+                            </span>
+
+                        </div>
+
+                        <?php
+							$start = new DateTime($eventData->schedule_on, new DateTimeZone('UTC'));
+
+							$end = clone $start;
+
+							list($h, $m, $s) = explode(':', $eventData->duration);
+
+							$end->add(new DateInterval("PT{$h}H{$m}M{$s}S"));
+							?>
+
+							<div class="flex justify-between">
+
+								<span class="text-slate-500">
+									Date
+								</span>
+
+								<span class="font-semibold"
+									id="eventDate"
+									data-start="<?= $start->format(DateTime::ATOM); ?>">
+									Loading...
+								</span>
+
+							</div>
+
+							<div class="flex justify-between">
+
+								<span class="text-slate-500">
+									Time
+								</span>
+
+								<span class="font-semibold"
+									id="eventTime"
+									data-start="<?= $start->format(DateTime::ATOM); ?>"
+									data-end="<?= $end->format(DateTime::ATOM); ?>">
+									Loading...
+								</span>
+
+							</div>
+
+							<div class="mt-2 text-xs text-slate-500 text-right">
+								<span>
+									All dates and times are displayed in your local time zone.
+								</span>
+							</div>
+
+                    </div>
+
+                </div>
+
+                <!-- Features -->
+                <div class="mt-6 rounded-2xl border border-slate-200">
+
+                    <div class="border-b p-5">
+
+                        <h3 class="font-bold text-slate-900">
+                            Your Session Features
+                        </h3>
+
+                    </div>
+
+                   <div class="grid grid-cols-2 gap-3 p-5">
+
+						<?php if($eventData->message_allow && $eventData->event_message_allow){ ?>
+						<div class="rounded-lg bg-green-50 text-green-700 text-sm font-medium px-3 py-2">
+							✓ Live Chat
+						</div>
+						<?php } ?>
+
+						<?php if($eventData->pooling_allow && $eventData->event_pooling_allow){ ?>
+						<div class="rounded-lg bg-green-50 text-green-700 text-sm font-medium px-3 py-2">
+							✓ Live Polling
+						</div>
+						<?php } ?>
+
+						<!-- Audience -->
+						<?php if($eventData->participant_flag == 0 && $isModerator == 0){ ?>
+
+							<div class="rounded-lg bg-green-50 text-green-700 text-sm font-medium px-3 py-2">
+								✓ Watch Live Webcast
+							</div>
+
+							<div class="rounded-lg bg-green-50 text-green-700 text-sm font-medium px-3 py-2">
+								✓ View Participant Conversations
+							</div>
+
+						<?php } ?>
+
+						<!-- Participant -->
+						<?php if($eventData->participant_flag == 1 && $isModerator == 0){ ?>
+
+							<div class="rounded-lg bg-green-50 text-green-700 text-sm font-medium px-3 py-2">
+								✓ Join Live Audio & Video
+							</div>
+
+							<div class="rounded-lg bg-green-50 text-green-700 text-sm font-medium px-3 py-2">
+								✓ Speak with the Host/Moderator
+							</div>
+
+							<div class="rounded-lg bg-green-50 text-green-700 text-sm font-medium px-3 py-2">
+								✓ View Participant Conversations
+							</div>
+
+						<?php } ?>
+
+						<!-- Moderator -->
+						<?php if($isModerator == 1){ ?>
+
+							<div class="rounded-lg bg-green-50 text-green-700 text-sm font-medium px-3 py-2">
+								✓ Manage the Webcast
+							</div>
+
+							<div class="rounded-lg bg-green-50 text-green-700 text-sm font-medium px-3 py-2">
+								✓ Control Participants
+							</div>
+							<?php if($eventData->broadcast_allow == 1){ ?>
+							<div class="rounded-lg bg-green-50 text-green-700 text-sm font-medium px-3 py-2">
+								✓ Start & Stop Streaming
+							</div>
+							<?php }?>
+							<?php if($eventData->record_allow == 1){ ?>
+							<div class="rounded-lg bg-green-50 text-green-700 text-sm font-medium px-3 py-2">
+								✓ Manage Recording
+							</div>
+							<?php }?>
+							<?php if($eventData->event_message_allow == 1){ ?>
+							<div class="rounded-lg bg-green-50 text-green-700 text-sm font-medium px-3 py-2">
+								✓ Moderate Live Chat
+							</div>
+							<?php }?>
+							<?php if($eventData->event_pooling_allow == 1){ ?>
+							<div class="rounded-lg bg-green-50 text-green-700 text-sm font-medium px-3 py-2">
+								✓ Launch Live Polls
+							</div>
+							<?php }?>
+						<?php } ?>
+
+					</div>
+
+                </div>
+
+                <!-- Button -->
+				<script>
+					function closeBeforeJoin() {
+					showPrompt(
+							"Close Cast",
+							"Are you sure you want to Close Cast?",
+							() => {
+								allowClose=true;
+								window.close();
+							}
+						);
+					}
+				</script>
+                <div class="flex gap-3 mt-8">
+
+					<button
+						onclick="closeBeforeJoin()"
+						class="flex-1 h-14 rounded-xl bg-slate-200 hover:bg-slate-300 font-semibold">
+
+						Cancel
+
+					</button>
+
+					<?php if ($readyJoinFlag): ?>
+
+						<button
+							onclick="readyJoinWebcast()"
+							class="flex-1 h-14 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition">
+
+							Join Webcast
+
+						</button>
+
+					<?php else: ?>
+
+						<button
+							id="joinButton"
+							disabled
+							class="flex-1 h-14 rounded-xl bg-amber-500 text-white font-semibold cursor-not-allowed flex items-center justify-center gap-3">
+
+							<svg
+								class="w-5 h-5 animate-spin"
+								xmlns="http://www.w3.org/2000/svg"
+								fill="none"
+								viewBox="0 0 24 24">
+
+								<circle
+									class="opacity-25"
+									cx="12"
+									cy="12"
+									r="10"
+									stroke="currentColor"
+									stroke-width="4">
+								</circle>
+
+								<path
+									class="opacity-90"
+									fill="currentColor"
+									d="M12 2a10 10 0 0110 10h-4a6 6 0 00-6-6V2z">
+								</path>
+
+							</svg>
+
+							Waiting Moderator...
+
+						</button>
+
+					<?php endif; ?>
+
+				</div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>

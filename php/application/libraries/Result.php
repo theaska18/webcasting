@@ -20,6 +20,9 @@ class Result {
 		if ($this->total == null) {
 			unset($this->total);
 		}
+		if($this->code != '00'){
+			http_response_code(500);
+		}
 		header('Content-Type: application/json; charset=utf-8');
 		echo json_encode($this);
 		exit ();

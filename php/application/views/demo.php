@@ -1,28 +1,60 @@
+<?php
+	$ci =& get_instance();
+    // Ambil 1 event random
+    $event = $ci->db
+        ->where('event_id >=', 1)
+        ->where('event_id <=', 10)
+        ->order_by('RAND()')
+        ->limit(1)
+        ->get('cast_event')
+        ->row_array();
+
+    if (!$event) {
+        return null;
+    }
+
+    $eventId = $event['event_id'];
+
+    // Host
+    $host = $ci->db
+        ->where('event_id', $eventId)
+        ->where('moderator_flag', 1)
+        ->limit(1)
+        ->get('cast_event_user')
+        ->row_array();
+
+    // Participant
+    $participant = $ci->db
+        ->where('event_id', $eventId)
+        ->where('moderator_flag', 0)
+        ->where('participant_flag', 1)
+        ->limit(1)
+        ->get('cast_event_user')
+        ->row_array();
+
+    // Audience
+    $audience = $ci->db
+        ->where('event_id', $eventId)
+        ->where('moderator_flag', 0)
+        ->where('participant_flag', 0)
+        ->limit(1)
+        ->get('cast_event_user')
+        ->row_array();
+
+?>
 <div class="bg-white overflow-hidden">
 <script>
-    var joinType="host";
-    var hostName="<?= $hostName; ?>";
-    var presenterName="<?= $presenterName; ?>";
-    var audienceName="<?= $audienceName; ?>";
-    var jwtHost="<?= $jwtHost; ?>";
-    var jwtPresenter="<?= $jwtPresenter; ?>";
-    var jwtAudience="<?= $jwtAudience; ?>";
-    function handleRoleChange(el) {
-        console.log("Selected:", el.value);
-        joinType=el.value;
-        if (el.value === "host") {
-            $('#inputName').val(hostName);
-        }else if(el.value === "presenter"){
-            $('#inputName').val(presenterName);
-        }else if(el.value === "audience"){
-            $('#inputName').val(audienceName);
-        }
-    }
-    function openJoin(){
+    var hostName="<?= $host['user_name']; ?>";
+    var presenterName="<?= $participant['user_name']; ?>";
+    var audienceName="<?= $audience['user_name']; ?>";
+    var jwtHost="<?= $host['invitation_code']; ?>";
+    var jwtPresenter="<?= $participant['invitation_code']; ?>";
+    var jwtAudience="<?= $audience['invitation_code']; ?>";
+    function openJoin(joinType){
         if(joinType=='host'){
-            window.open('<?= base_url();?>cast/<?= $roomName; ?>/'+jwtHost);
+            window.open('<?= base_url();?>cast?invitation='+jwtHost);
         }else if(joinType=='presenter'){
-            window.open('<?= base_url();?>cast/<?= $roomName; ?>/'+jwtPresenter);
+            window.open('<?= base_url();?>cast?invitation='+jwtPresenter);
         }
     }
 </script>
@@ -39,7 +71,7 @@
 
                 <img src="<?= base_url(); ?>assets/images/logo_title.png"
                      class="h-12 w-fit mb-10"
-                     alt="Infinity Webcast">
+                     alt="Ckamal Webcast">
 
                 <span class="inline-flex w-fit items-center rounded-full bg-white/15 px-4 py-2 text-sm text-white">
                     Enterprise Webcasting Platform
@@ -147,12 +179,12 @@
                     <div>
 
                         <label class="block font-medium text-slate-700 mb-2">
-                            Webcast Room
+                            Webcast Topic
                         </label>
 
                         <input
                             type="text"
-                            value="<?= $roomName; ?>"
+                            value="<?= $event['event_name']; ?>"
                             placeholder="e.g. annual-townhall-2026"
                             class="w-full rounded-xl border border-slate-300 px-5 py-3
                                    focus:ring-4 focus:ring-blue-100
@@ -161,19 +193,18 @@
 
                     </div>
 
-                    <!-- Name -->
+					<!-- Organization -->
 
                     <div>
 
                         <label class="block font-medium text-slate-700 mb-2">
-                            Display Name
+                            Organization
                         </label>
 
                         <input
                             type="text"
-                            id="inputName"
-                            value="<?= $hostName;?>"
-                            placeholder="Enter your name"
+                            value="<?= $event['organization']; ?>"
+                            placeholder="e.g. annual-townhall-2026"
                             class="w-full rounded-xl border border-slate-300 px-5 py-3
                                    focus:ring-4 focus:ring-blue-100
                                    focus:border-[#2A83F8]
@@ -181,122 +212,80 @@
 
                     </div>
 
-                    <!-- Role -->
-
                     <div>
 
-                        <label class="block font-medium text-slate-700 mb-3">
-                            Choose Your Role
-                        </label>
+						<label class="block font-medium text-slate-700 mb-3">
+							Join As
+						</label>
 
-                        <div class="grid grid-cols-3 gap-4">
+						<div class="grid md:grid-cols-3 gap-4">
 
-                            <!-- Host -->
+							<!-- Host -->
 
-                            <label class="cursor-pointer">
+							<button
+								type="button"
+								onclick="openJoin('host')"
+								class="rounded-2xl border-2 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:border-blue-500 transition p-6 text-center group">
 
-                                <input
-                                    type="radio"
-                                    name="role"
-                                    value="host"
-                                    class="peer hidden"
-                                    onchange="handleRoleChange(this)"
-                                    checked>
+								<div class="text-4xl mb-3">
+									🎙️
+								</div>
 
-                                <div class="rounded-2xl border-2 border-slate-200 p-5 text-center transition
-                                            peer-checked:border-[#1556D8]
-                                            peer-checked:bg-blue-50">
+								<div class="font-bold text-lg text-slate-800">
+									Host
+								</div>
 
-                                    <div class="text-3xl mb-3">🎙️</div>
+								<div class="text-sm text-slate-500 mt-2">
+									Manage webcast, recording, participants and streaming.
+								</div>
 
-                                    <div class="font-bold">
-                                        Host
-                                    </div>
+							</button>
 
-                                    <div class="text-xs text-slate-500 mt-1">
-                                        Manage webcast
-                                    </div>
+							<!-- Participant -->
 
-                                </div>
+							<button
+								type="button"
+								onclick="openJoin('presenter')"
+								class="rounded-2xl border-2 border-orange-200 bg-orange-50 hover:bg-orange-100 hover:border-orange-500 transition p-6 text-center group">
 
-                            </label>
+								<div class="text-4xl mb-3">
+									🎤
+								</div>
 
-                            <!-- Presenter -->
+								<div class="font-bold text-lg text-slate-800">
+									Participant
+								</div>
 
-                            <label class="cursor-pointer">
+								<div class="text-sm text-slate-500 mt-2">
+									Join with microphone and camera.
+								</div>
 
-                                <input
-                                    type="radio"
-                                    name="role"
-                                    value="presenter"
-                                    class="peer hidden" onchange="handleRoleChange(this)">
+							</button>
 
-                                <div class="rounded-2xl border-2 border-slate-200 p-5 text-center transition
-                                            peer-checked:border-[#FF7A1A]
-                                            peer-checked:bg-orange-50">
+							<!-- Audience -->
 
-                                    <div class="text-3xl mb-3">🎤</div>
+							<button
+								type="button"
+								onclick="openJoin('audience')"
+								class="rounded-2xl border-2 border-sky-200 bg-sky-50 hover:bg-sky-100 hover:border-sky-500 transition p-6 text-center group">
 
-                                    <div class="font-bold">
-                                        Presenter
-                                    </div>
+								<div class="text-4xl mb-3">
+									👥
+								</div>
 
-                                    <div class="text-xs text-slate-500 mt-1">
-                                        Share audio & video
-                                    </div>
+								<div class="font-bold text-lg text-slate-800">
+									Audience
+								</div>
 
-                                </div>
+								<div class="text-sm text-slate-500 mt-2">
+									Watch the webcast without participating.
+								</div>
 
-                            </label>
+							</button>
 
-                            <!-- Audience -->
+						</div>
 
-                            <label class="cursor-pointer">
-
-                                <input
-                                    type="radio"
-                                    name="role"
-                                    value="audience"
-                                    onchange="handleRoleChange(this)"
-                                    class="peer hidden">
-
-                                <div class="rounded-2xl border-2 border-slate-200 p-5 text-center transition
-                                            peer-checked:border-[#5EBEFF]
-                                            peer-checked:bg-sky-50">
-
-                                    <div class="text-3xl mb-3">👥</div>
-
-                                    <div class="font-bold">
-                                        Audience
-                                    </div>
-
-                                    <div class="text-xs text-slate-500 mt-1">
-                                        Watch live webcast
-                                    </div>
-
-                                </div>
-
-                            </label>
-
-                        </div>
-
-                    </div>
-
-                    <!-- Button -->
-
-                    <button
-                        class="w-full rounded-xl py-4 text-lg font-semibold text-white
-                               bg-gradient-to-r
-                               from-[#1556D8]
-                               via-[#2A83F8]
-                               to-[#FF7A1A]
-                               hover:shadow-xl
-                               hover:scale-[1.01]
-                               transition-all duration-300" onclick="openJoin()">
-
-                        Join Webcast →
-
-                    </button>
+					</div>
 
                 </div>
 
