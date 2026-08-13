@@ -20,7 +20,9 @@ class Cast extends CI_Controller {
 				if($row->ban_flag==0){
 					// echo json_encode($row);
 					$isModerator=$row->moderator_flag==1?true:false;
-					$this->load->view('templates/full2column',array('jwtWs'=>$this->getJwtWS(),'view'=>'cast','roomName'=>$row->event_name,'navigate'=>'cast_moderator','left'=>'cast_left','isModerator'=>$isModerator,'eventData'=>$row));
+					$isParticipant=$row->moderator_flag==0 && $row->participant_flag==1?true:false;
+					$isAudience=$row->moderator_flag==0 && $row->participant_flag==0?true:false;
+					$this->load->view('templates/full2column',array('isAudience'=>$isAudience,'isParticipant'=>$isParticipant,'jwtWs'=>$this->getJwtWS(),'view'=>'cast','roomName'=>$row->event_name,'navigate'=>'cast_moderator','left'=>'cast_left','isModerator'=>$isModerator,'eventData'=>$row));
 				}else{
 					echo 'You\'re Banned';
 				}

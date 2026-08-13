@@ -69,11 +69,11 @@
             <div class="absolute -top-20 -right-20 w-80 h-80 bg-[#FF7A1A]/25 rounded-full blur-3xl"></div>
             <div class="absolute -bottom-16 -left-16 w-64 h-64 bg-[#FFA34A]/20 rounded-full blur-3xl"></div>
 
-            <div class="relative z-10 h-full flex flex-col justify-center p-10">
+            <div class="relative z-10 h-full flex flex-col justify-center p-5 lg:p-10">
 
-                <img src="<?= base_url(); ?>assets/images/logo_title.png"
-                     class="h-12 w-fit mb-10"
-                     alt="Ckamal Webcast">
+                <div><img src="<?= base_url(); ?>assets/images/logo_title.png"
+                     class="h-12 mt-5 mb-10"
+                     alt="Ckamal Webcast"></div>
 
                 <span class="inline-flex w-fit items-center rounded-full bg-white/15 px-4 py-2 text-sm text-white">
                     Enterprise Webcasting Platform

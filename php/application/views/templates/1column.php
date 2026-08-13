@@ -30,7 +30,6 @@
                     }
                 ?>
             </section>
-
         </main>
         <?php $this->load->view('layouts/footer'); ?>
     </body>

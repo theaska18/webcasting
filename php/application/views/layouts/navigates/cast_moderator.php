@@ -1,67 +1,61 @@
 <script>
+	var actionStream=false;
 	var allowClose=false;
 	window.addEventListener("beforeunload", function (e) {
 		if(allowClose==false){
 			e.preventDefault();
 			e.returnValue = "";
 		}
+		<?php if($isModerator){ ?>
 		ws.send(JSON.stringify({
 			action: "MODERATOR_LEFT"
 		}));
+		<?php } ?>
 	});
 </script>
 <div class="flex items-center justify-between h-20">
-    <button id="menuButtonLeft"
-            class="md:hidden p-2 rounded-lg hover:bg-slate-100">
-
-        <svg xmlns="http://www.w3.org/2000/svg"
-             class="w-7 h-7"
-             fill="none"
-             viewBox="0 0 24 24"
-             stroke="currentColor">
-
-            <path stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 6h16M4 12h16M4 18h16"/>
-
+    <button id="menuButtonLeft" class="md:hidden p-2 pl-5 rounded-lg hover:bg-slate-100">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
         </svg>
-
     </button>
     <!-- Logo -->
     <a href="#" class="flex items-center gap-3 flex-shrink-0 ml-2">
-        <img src="<?= base_url(); ?>assets/images/logo1.png"
-             class="w-10 h-10"
-             alt="Logo">
-        <img src="<?= base_url(); ?>assets/images/logo_title.png"
-             class="h-9 hidden md:block"
-             alt="Ckamal Webcast">
+        <img src="<?= base_url(); ?>assets/images/logo1.png" class="w-10 h-10" alt="Logo">
+        <img src="<?= base_url(); ?>assets/images/logo_title.png" class="h-9 hidden md:block" alt="Ckamal Webcast">
 		<?php if($isModerator==true){ ?>
-		<div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
-			<span class="relative flex h-3 w-3">
-				<span id="pointStatusStream1" class="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
-				<span id="pointStatusStream2" class="relative inline-flex h-3 w-3 rounded-full bg-red-500"></span>
-			</span>
-			<div>
-				<div class="text-xs text-slate-500 uppercase tracking-wide">
-					Stream Status
-				</div>
-				<div id="labelStatusStream1" class="text-sm font-semibold text-red-600">
-					Offline
-				</div>
-			</div>
-    	</div>
+		<div id="streamStatusCard"
+     class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 transition-all duration-300">
+
+    <span class="relative flex h-2.5 w-2.5">
+
+        <span id="pointStatusStream1"
+              class="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping">
+        </span>
+
+        <span id="pointStatusStream2"
+              class="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500">
+        </span>
+
+    </span>
+
+    <span class="text-xs text-slate-500">
+        Stream
+    </span>
+
+    <span id="labelStatusStream1"
+          class="text-xs font-bold text-red-600">
+        Offline
+    </span>
+
+</div>
 		<?php } ?>
     </a>
-    
     <!-- Right Action -->
     <div class="hidden xl:flex items-center gap-2">
-
         <!-- Status -->
-
         <!-- Right Control Bar -->
         <div class="hidden xl:flex items-center gap-3">
-
             <!-- Divider -->
             <div class="h-8 w-px bg-slate-200"></div>
 <?php
@@ -85,25 +79,19 @@
 							} catch (e) {
 								console.error('Failed to start streaming', e);
 							}
+							actionStream=true;
 							<?php } ?>
                         }
                     );
                 }
             </script>
             <!-- Start Stream -->
-            <button onclick="startStream()" id="btnStartStreamDesktop"
-                class="flex items-center gap-2 rounded-xl bg-green-600 hover:bg-green-700 px-5 py-2.5 text-white text-sm font-semibold shadow-lg shadow-green-600/20 transition">
-
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    class="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20">
-                    <path d="M6 4l10 6-10 6V4z"/>
-                </svg>
-
-                Start Stream
-
-            </button>
+            <button onclick="startStream()" id="btnStartStreamDesktop" class="inline-flex h-8 items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 px-2.5 text-xs font-semibold text-white transition">
+				<svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+					<path d="M6 4l10 6-10 6V4z"/>
+				</svg>
+				Start Stream
+			</button>
             <script>
                 function stopStream() {
                 showPrompt(
@@ -119,33 +107,25 @@
                 }
             </script>
             <!-- Stop Stream -->
-            <button onclick="stopStream()" id="btnStopStreamDesktop"
-                class="flex hidden items-center gap-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 px-5 py-2.5 text-red-600 text-sm font-semibold transition">
-
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    class="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20">
-                    <path d="M5 5h10v10H5z"/>
-                </svg>
-
-                Stop Stream
-
-            </button>
+            <button onclick="stopStream()" id="btnStopStreamDesktop" class="inline-flex hidden h-8 items-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 px-2.5 text-xs font-medium text-white transition">
+				<svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5 5h10v10H5z"/></svg>
+				Stop Stream
+			</button>
 
             <!-- Start Recording -->
-            <button disabled
-                class="flex items-center gap-2 rounded-xl bg-orange-500 hover:bg-orange-600 px-5 py-2.5 text-white text-sm font-semibold shadow-lg shadow-orange-500/20 transition">
+            <button
+				id="btnRecordingDesktop" disabe
+				class="bg-slate-400 h-8 opacity-60 cursor-not-allowed inline-flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium text-white transition">
 
-                <span class="w-3 h-3 rounded-full bg-white"></span>
+				<span class="w-2 h-2 rounded-full bg-white"></span>
 
-                Start Recording
+				Start Recording
 
-            </button>
+			</button>
 
             <!-- Stop Recording -->
             <button
-                class="flex items-center hidden gap-2 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 px-5 py-2.5 text-orange-700 text-sm font-semibold transition">
+                class="flex h-8 items-center hidden gap-2 rounded-md border border-orange-200 bg-orange-50 hover:bg-orange-100 px-2.5 py-2.5 text-orange-700 text-xs font-semibold transition">
 
                 <svg xmlns="http://www.w3.org/2000/svg"
                     class="w-5 h-5"
@@ -172,7 +152,7 @@
             </script>
             <!-- End Cast -->
             <button  onclick="endCast()"
-                class="flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-black px-5 py-2.5 text-white text-sm font-semibold shadow-lg transition">
+                class="flex h-8 items-center gap-2 rounded-md bg-slate-900 hover:bg-black px-2.5 py-2.5 text-white text-xs font-semibold shadow-lg transition">
 
                 <svg xmlns="http://www.w3.org/2000/svg"
                     class="w-5 h-5"
@@ -206,7 +186,7 @@
             </script>
             <!-- End Cast -->
             <button  onclick="leftCast()"
-                class="flex items-center gap-2 rounded-xl bg-slate-900 hover:bg-black px-5 py-2.5 text-white text-sm font-semibold shadow-lg transition">
+                class="flex h-8 items-center gap-2 rounded-xl bg-slate-900 hover:bg-black px-2.5 py-2.5 text-white text-xs font-semibold shadow-lg transition">
 
                 <svg xmlns="http://www.w3.org/2000/svg"
                     class="w-5 h-5"
@@ -276,24 +256,31 @@
 
     <!-- Mobile -->
 
-    <button id="menuButton"
-            class="xl:hidden p-2 rounded-lg hover:bg-slate-100">
+	<button id="menuButton" class="relative xl:hidden p-2 rounded-lg pr-5 hover:bg-gray-100">
 
-        <svg xmlns="http://www.w3.org/2000/svg"
-             class="w-7 h-7"
-             fill="none"
-             viewBox="0 0 24 24"
-             stroke="currentColor">
+		<svg xmlns="http://www.w3.org/2000/svg"
+			class="w-7 h-7"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor">
 
-            <path stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 6h16M4 12h16M4 18h16"/>
+			<path stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M4 6h16M4 12h16M4 18h16"/>
 
-        </svg>
+		</svg>
 
-    </button>
+		<!-- Notification -->
+		<span class="absolute top-1 right-2 flex h-3 w-3">
 
+			<span class="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
+
+			<span class="relative inline-flex h-3 w-3 rounded-full bg-red-500 border border-white"></span>
+
+		</span>
+
+	</button>
 </div>
 
 <!-- Mobile Menu -->
@@ -301,33 +288,42 @@
 <div id="mobileMenu"
      class="hidden xl:hidden border-t bg-white">
 
-    <div class="p-6 space-y-3">
+    <div class="p-6  pt-3  space-y-3">
 <?php
     if($isModerator){
 ?>
-        <button  onclick="startStream()"  id="btnStartStreamMobile" class="w-full rounded-xl bg-green-600 text-white py-3 font-semibold">
+        <button  onclick="startStream()"  id="btnStartStreamMobile" class="px-3 h-8 rounded-lg bg-green-600  text-xs text-white py-1 font-semibold">
             ▶ Start Stream
         </button>
 
-        <button  onclick="stopStream()"  id="btnStopStreamMobile" class="w-full hidden rounded-xl bg-red-600 text-white py-3 font-semibold">
+        <button  onclick="stopStream()"  id="btnStopStreamMobile" class="px-3 h-8 hidden rounded-lg bg-red-600 text-xs text-white py-1 font-semibold">
             ■ Stop Stream
         </button>
 
-        <button class="w-full rounded-xl bg-orange-500 text-white py-3 font-semibold">
+        <button class="px-3 h-8 rounded-lg bg-orange-500 text-white py-1 font-semibold  text-xs">
             ⏺ Start Record
         </button>
 
-        <button class="w-full rounded-xl hidden bg-orange-700 text-white py-3 font-semibold">
+        <button class="px-3 h-8 rounded-lg hidden bg-orange-700 text-white py-1 font-semibold  text-xs">
             ■ Stop Record
         </button>
 
-        <button   onclick="endCast()" class="w-full rounded-xl bg-slate-900 text-white py-3 font-semibold">
-            End Cast
+        <button  onclick="endCast()" class="flex px-3 h-8 rounded-lg bg-slate-900 text-white py-1 font-semibold  items-center text-xs">
+            <svg xmlns="http://www.w3.org/2000/svg"
+                    class="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M6 18L18 6M6 6l12 12"/>
+                </svg>End Cast
         </button>
 <?php
     }else{
 ?>
-        <button  onclick="leftCast()" class="w-full rounded-xl bg-slate-900 text-white py-3 font-semibold">
+        <button  onclick="leftCast()" class="px-3  h-8 rounded-lg bg-slate-900 text-white py-1 font-semibold">
             Left Cast
         </button>
 <?php
