@@ -8,18 +8,29 @@
         ->row();
 	$readyJoinFlag = false;
 	$isWaitingModerator=false;
+	$isWaitingStreaming=false;
+	$isAudience=false;
+	$isParticipant=false;
 	if ($eventData->moderator_flag == 1) {
 		$readyJoinFlag = true;
 	} else {
-		if (!empty($eventData->last_moderator_join)) {
-			$lastJoin = strtotime($eventData->last_moderator_join);
-			if ($lastJoin !== false && (time() - $lastJoin) <= 10) {
-				$readyJoinFlag = true;
+		if($eventData->participant_flag==1){
+			$isParticipant=true;
+			if (!empty($eventData->last_moderator_join)) {
+				$lastJoin = strtotime($eventData->last_moderator_join);
+				if ($lastJoin !== false && (time() - $lastJoin) <= 10) {
+					$readyJoinFlag = true;
+				}else{
+					$isWaitingModerator=true;
+				}
 			}else{
 				$isWaitingModerator=true;
 			}
 		}else{
-			$isWaitingModerator=true;
+			$isAudience=true;
+			if($eventData->broadcast_flag==0){
+				$isWaitingStreaming=true;
+			}
 		}
 	}
 	function format_duration($time){
@@ -95,8 +106,7 @@ let reconnectTimer = null;
 var isWaitingModerator=<?= $isWaitingModerator==true?'true':'false'; ?>
 
 const servers = [
-    "wss://103.119.63.137:13000/webcast/<?= $eventData->event_code; ?>/",
-    "wss://192.168.1.2:13000/webcast/<?= $eventData->event_code; ?>/"
+    "wss://ws.ckamal.com/webcast/<?= $eventData->event_code; ?>/"
 ];
 
 let serverIndex = 0;
@@ -110,7 +120,7 @@ function connect() {
     ws = new WebSocket(url);
 
     ws.onopen = () => {
-
+	
         console.log("Connected:", url);
 
         if (reconnectTimer) {
@@ -126,6 +136,7 @@ function connect() {
             token: '<?= $jwtWs; ?>',
 
         }));
+		
     };
 
     ws.onmessage = (event) => {
@@ -135,6 +146,8 @@ function connect() {
 		if(action=='MODERATOR_JOIN' && isWaitingModerator==true){
 			isWaitingModerator==false;
 			moderatorReady();
+		}else if(action=='MODERATOR_LEFT'){
+			alert();
 		}
         
     };
@@ -144,10 +157,10 @@ function connect() {
 
         // biarkan onclose yang menangani reconnect
         ws.close();
+		//alert('error1'+JSON.stringify(error));
     };
 
     ws.onclose = (event) => {
-
         console.log(`Disconnected (${event.code})`);
 
         if (reconnectTimer) {
@@ -237,6 +250,27 @@ function joinWebcast(){
 	});
 	
 }
+function startHeartbeat(){
+	$.ajax({
+		url: "<?= base_url() ; ?>cast/heartbeat?invitation=<?= $eventData->invitation_code; ?>",
+		type: "GET",
+		dataType: "json",
+		data: {
+			invitation: '<?= $eventData->invitation_code; ?>'
+		},
+		success: function(response){
+
+		},
+		error: function(xhr, status, error){
+			hideLoading();
+			console.error("Status :", status);
+			console.error("Error  :", error);
+			console.error("Response :", xhr.responseText);
+		}
+
+	});
+}
+var api=null;
 function runConference(jwt){
 	const domain = 'jitsi.ckamal.com';
           const options = {
@@ -303,24 +337,53 @@ function runConference(jwt){
 //             	}
 //             },
           };
-          const api = new JitsiMeetExternalAPI(domain, options);
-          	api.addEventListener('videoConferenceJoined', () => {
-				<?php if($isModerator){ ?>
-				ws.send(JSON.stringify({
-					action: "MODERATOR_JOIN"
-				}));
+	api = new JitsiMeetExternalAPI(domain, options);
+	api.addEventListener('videoConferenceJoined', () => {
+		<?php if($isModerator){ ?>
+		ws.send(JSON.stringify({
+			action: "MODERATOR_JOIN"
+		}));
+		<?php } ?>
+		setInterval(() => {
+			startHeartbeat();
+		}, 10000);
+	});
+	api.addListener('recordingStatusChanged', function (event) {
+		if (event.on) {
+			if(event.mode=='stream'){
+				<?php if($isModerator==true){ ?>
+				$('#btnStartStreamDesktop').addClass('hidden');
+				$('#btnStartStreamMobile').addClass('hidden');
+				$('#btnStopStreamDesktop').removeClass('hidden');
+				$('#btnStopStreamMobile').removeClass('hidden');
+				$('#labelStatusStream1').removeClass('text-red-600');
+				$('#labelStatusStream1').addClass('text-green-600');
+				$('#labelStatusStream1').html('Online');
+				$('#pointStatusStream1').removeClass('bg-red-400');
+				$('#pointStatusStream1').addClass('bg-green-400');
+				$('#pointStatusStream2').removeClass('bg-red-500');
+				$('#pointStatusStream2').addClass('bg-green-500');
 				<?php } ?>
-			//    try {
-      //               api.executeCommand('startRecording', {
-      //                   mode: 'stream',
-      //                   rtmpStreamKey: 'rtmp://nginx-rtmp/stream/<?= $roomName; ?>'
-      //               });
-
-      //               console.log('Streaming started');
-      //           } catch (e) {
-      //               console.error('Failed to start streaming', e);
-      //           }
-			});
+				
+			}
+		} else {
+			if(event.mode=='stream'){
+				<?php if($isModerator==true){ ?>
+				$('#btnStartStreamDesktop').removeClass('hidden');
+				$('#btnStartStreamMobile').removeClass('hidden');
+				$('#btnStopStreamDesktop').addClass('hidden');
+				$('#btnStopStreamMobile').addClass('hidden');
+				$('#labelStatusStream1').removeClass('text-green-600');
+				$('#labelStatusStream1').addClass('text-red-600');
+				$('#labelStatusStream1').html('Offline');
+				$('#pointStatusStream1').removeClass('bg-green-400');
+				$('#pointStatusStream1').addClass('bg-red-400');
+				$('#pointStatusStream2').removeClass('bg-green-500');
+				$('#pointStatusStream2').addClass('bg-red-500');
+				<?php } ?>
+			}
+		}
+	});
             // api.addListener('readyToClose', () => {
             //     location.reload();
             // });
@@ -345,7 +408,7 @@ function runConference(jwt){
 <div id="preJoinOverlay"
      class="fixed inset-0 z-[9999] bg-slate-950/70 backdrop-blur-md overflow-y-auto">
 
-    <div class="min-h-full flex items-center justify-center p-4 lg:p-8">
+    <div class="min-h-full flex items-center justify-center lg:p-8">
 
         <div class="grid lg:grid-cols-5">
 
@@ -356,7 +419,7 @@ function runConference(jwt){
             <div class="lg:col-span-3 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white flex flex-col">
 
 				<!-- Header -->
-				<div class="flex items-center justify-between px-10 py-6 bg-white border-b border-slate-200">
+				<div class="flex items-center justify-between px-5 lg:px-10 py-6 bg-white border-b border-slate-200">
 
 					<div class="flex items-center gap-4">
 
@@ -372,17 +435,17 @@ function runConference(jwt){
 
 					<div class="flex items-center gap-3">
 					<?php
-						if($readyJoinFlag==true){
+						if($isModerator==true || ($isParticipant==true && $isWaitingModerator==false) || ($isAudience==true && $isWaitingStreaming==false)){
 					?>
-					<span class="inline-flex items-center gap-2 rounded-full bg-green-100 text-green-700 px-4 py-2 text-sm font-semibold">	
+					<span class="inline-flex items-center gap-2 rounded-full bg-green-100 text-green-700 px-4 py-2 text-sm font-semibold truncate whitespace-nowrap">	
 							<span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
 							Ready to Join
 						</span>
 					<?php
-						}else{
+						}else if($isParticipant==true && $isWaitingModerator==true){
 					?>
 						<span id="joinStatusTop"
-							class="inline-flex items-center gap-2 rounded-full bg-red-100 text-red-700 px-4 py-2 text-sm font-semibold">
+							class="inline-flex items-center gap-2 rounded-full bg-red-100 text-red-700 px-4 py-2 text-sm font-semibold truncate whitespace-nowrap">
 
 							<span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
 
@@ -390,9 +453,19 @@ function runConference(jwt){
 
 						</span>
 					<?php
+						}else if($isAudience==true && $isWaitingStreaming==true){
+					?>
+						<span id="joinStatusTop"
+							class="inline-flex items-center gap-2 rounded-full bg-red-100 text-red-700 px-4 py-2 text-sm font-semibold truncate whitespace-nowrap">
+
+							<span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+
+							Waiting for Streaming
+
+						</span>
+					<?php
 						}
 					?>
-						
 
 					</div>
 
@@ -458,7 +531,7 @@ function runConference(jwt){
 
 							<div class="mt-2 inline-flex items-center gap-2">
 								<?php
-									if($readyJoinFlag==true){
+									if($isModerator==true || ($isParticipant==true && $isWaitingModerator==false) || ($isAudience==true && $isWaitingStreaming==false)){
 								?>
 								<span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
 
@@ -466,14 +539,26 @@ function runConference(jwt){
 									Ready to Join
 								</span>
 								<?php
-									}else{
+									}else if($isParticipant==true && $isWaitingModerator==true){
 								?>
 									<span id="joinStatusBottom">
 
 										<span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
 
 										<span class="font-semibold">
-											Waiting Moderator
+											Waiting for Moderator
+										</span>
+
+									</span>
+								<?php
+									}else if($isAudience==true && $isWaitingStreaming==true){
+								?>
+									<span id="joinStatusBottom">
+
+										<span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+
+										<span class="font-semibold">
+											Waiting for Streaming
 										</span>
 
 									</span>
@@ -781,6 +866,32 @@ function runConference(jwt){
 						);
 					}
 				</script>
+				<?php if($isAudience==true && $isWaitingStreaming==true){ ?>
+				<div class="mt-6 rounded-xl bg-amber-50 border border-amber-200 p-4">
+
+                    <div class="font-semibold text-amber-800">
+						Notice
+					</div>
+
+					<div class="text-sm text-amber-700 mt-1 leading-6">
+						The webcast is not yet available because the host or moderator has not started the live session. The <strong>Join Webcast</strong> button will become available automatically once the webcast begins.
+					</div>
+
+                </div>
+				<?php } ?>
+				<?php if($isParticipant==true && $isWaitingModerator==true){ ?>
+				<div class="mt-6 rounded-xl bg-amber-50 border border-amber-200 p-4">
+
+                    <div class="font-semibold text-amber-800">
+						Notice
+					</div>
+
+					<div class="text-sm text-amber-700 mt-1 leading-6">
+						The webcast is not yet available because the host or moderator has not joined. The <strong>Join Webcast</strong> button will become available automatically once the Moderator joined.
+					</div>
+
+                </div>
+				<?php } ?>
                 <div class="flex gap-3 mt-8">
 
 					<button
@@ -791,7 +902,7 @@ function runConference(jwt){
 
 					</button>
 
-					<?php if ($readyJoinFlag): ?>
+					<?php if($isModerator==true || ($isParticipant==true && $isWaitingModerator==false) || ($isAudience==true && $isWaitingStreaming==false)){ ?>
 
 						<button
 							onclick="readyJoinWebcast()"
@@ -801,7 +912,7 @@ function runConference(jwt){
 
 						</button>
 
-					<?php else: ?>
+					<?php }else if($isParticipant==true && $isWaitingModerator==true){ ?>
 
 						<button
 							id="joinButton"
@@ -831,11 +942,45 @@ function runConference(jwt){
 
 							</svg>
 
-							Waiting Moderator...
+							Waiting for Moderator...
 
 						</button>
 
-					<?php endif; ?>
+					<?php }else if($isAudience==true && $isWaitingStreaming==true){ ?>
+
+						<button
+							id="joinButton"
+							disabled
+							class="flex-1 h-14 rounded-xl bg-amber-500 text-white font-semibold cursor-not-allowed flex items-center justify-center gap-3">
+
+							<svg
+								class="w-5 h-5 animate-spin"
+								xmlns="http://www.w3.org/2000/svg"
+								fill="none"
+								viewBox="0 0 24 24">
+
+								<circle
+									class="opacity-25"
+									cx="12"
+									cy="12"
+									r="10"
+									stroke="currentColor"
+									stroke-width="4">
+								</circle>
+
+								<path
+									class="opacity-90"
+									fill="currentColor"
+									d="M12 2a10 10 0 0110 10h-4a6 6 0 00-6-6V2z">
+								</path>
+
+							</svg>
+
+							Waiting for Streaming...
+
+						</button>
+
+					<?php } ?>
 
 				</div>
 

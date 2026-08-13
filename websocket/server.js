@@ -1,12 +1,13 @@
 const fs = require("fs");
-const https = require("https");
+const https = require("http");
 const jwt = require("jsonwebtoken");
 const WebSocket = require("ws");
 const JWT_SECRET = process.env.JWT_SECRET || "webcast";
-const server = https.createServer({
-	key: fs.readFileSync("/ssl/server.key"),
-	cert: fs.readFileSync("/ssl/server.crt"),
-});
+const server = https.createServer();
+// const server = https.createServer({
+// 	key: fs.readFileSync("/ssl/server.key"),
+// 	cert: fs.readFileSync("/ssl/server.crt"),
+// });
 const wss = new WebSocket.Server({
 	server,
 	maxPayload: 16 * 1024,

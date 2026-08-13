@@ -5,6 +5,9 @@
 			e.preventDefault();
 			e.returnValue = "";
 		}
+		ws.send(JSON.stringify({
+			action: "MODERATOR_LEFT"
+		}));
 	});
 </script>
 <div class="flex items-center justify-between h-20">
@@ -27,32 +30,28 @@
     </button>
     <!-- Logo -->
     <a href="#" class="flex items-center gap-3 flex-shrink-0 ml-2">
-
         <img src="<?= base_url(); ?>assets/images/logo1.png"
              class="w-10 h-10"
              alt="Logo">
-
         <img src="<?= base_url(); ?>assets/images/logo_title.png"
              class="h-9 hidden md:block"
              alt="Ckamal Webcast">
-             <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
-
-        <span class="relative flex h-3 w-3">
-            <span class="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
-            <span class="relative inline-flex h-3 w-3 rounded-full bg-red-500"></span>
-        </span>
-
-        <div>
-            <div class="text-xs text-slate-500 uppercase tracking-wide">
-                Stream Status
-            </div>
-            <div class="text-sm font-semibold text-red-600">
-                Offline
-            </div>
-        </div>
-
-    </div>
-
+		<?php if($isModerator==true){ ?>
+		<div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+			<span class="relative flex h-3 w-3">
+				<span id="pointStatusStream1" class="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
+				<span id="pointStatusStream2" class="relative inline-flex h-3 w-3 rounded-full bg-red-500"></span>
+			</span>
+			<div>
+				<div class="text-xs text-slate-500 uppercase tracking-wide">
+					Stream Status
+				</div>
+				<div id="labelStatusStream1" class="text-sm font-semibold text-red-600">
+					Offline
+				</div>
+			</div>
+    	</div>
+		<?php } ?>
     </a>
     
     <!-- Right Action -->
@@ -75,12 +74,24 @@
                         "Are you sure you want to start broadcasting?",
                         () => {
                             console.log("START STREAM");
+							<?php if($isModerator==true){ ?>
+							try {
+								api.executeCommand('startRecording', {
+									mode: 'stream',
+									rtmpStreamKey: 'rtmp://nginx-rtmp/stream/<?= $roomName; ?>'
+								});
+
+								console.log('Streaming started');
+							} catch (e) {
+								console.error('Failed to start streaming', e);
+							}
+							<?php } ?>
                         }
                     );
                 }
             </script>
             <!-- Start Stream -->
-            <button onclick="startStream()" 
+            <button onclick="startStream()" id="btnStartStreamDesktop"
                 class="flex items-center gap-2 rounded-xl bg-green-600 hover:bg-green-700 px-5 py-2.5 text-white text-sm font-semibold shadow-lg shadow-green-600/20 transition">
 
                 <svg xmlns="http://www.w3.org/2000/svg"
@@ -100,12 +111,15 @@
                         "Are you sure you want to end the broadcast?",
                         () => {
                             console.log("START STREAM");
+							<?php if($isModerator==true){ ?>
+							api.executeCommand('stopRecording', 'stream');
+							<?php } ?>
                         }
                     );
                 }
             </script>
             <!-- Stop Stream -->
-            <button onclick="stopStream()"
+            <button onclick="stopStream()" id="btnStopStreamDesktop"
                 class="flex hidden items-center gap-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 px-5 py-2.5 text-red-600 text-sm font-semibold transition">
 
                 <svg xmlns="http://www.w3.org/2000/svg"
@@ -212,6 +226,22 @@
         
 <?php
     }
+	function getInitial($name){
+		$words = preg_split('/\s+/', trim($name));
+		$initial = '';
+
+		foreach ($words as $word) {
+			if ($word !== '') {
+				$initial .= strtoupper(substr($word, 0, 1));
+			}
+
+			if (strlen($initial) >= 2) {
+				break;
+			}
+		}
+
+		return $initial;
+	}
 ?>
 </div>
         <!-- User -->
@@ -220,7 +250,7 @@
 
             <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
 
-                AK
+                <?= getInitial($eventData->user_name); ?>
 
             </div>
 
@@ -228,13 +258,13 @@
 
                 <div class="text-sm font-semibold text-slate-800">
 
-                    <?php //$jwtData['user']['name']; ?>
+                    <?= nl2br(html_escape($eventData->user_name)); ?>
 
                 </div>
 
                 <div class="text-xs text-slate-500">
 
-                    <?php //$isModerator?'Host':'Presenter'; ?>
+                    <?= nl2br(html_escape($isModerator?'Host':($eventData->participant_flag==true ? 'Presenter' :'Audience'))); ?>
 
                 </div>
 
@@ -275,11 +305,11 @@
 <?php
     if($isModerator){
 ?>
-        <button  onclick="startStream()" class="w-full rounded-xl bg-green-600 text-white py-3 font-semibold">
+        <button  onclick="startStream()"  id="btnStartStreamMobile" class="w-full rounded-xl bg-green-600 text-white py-3 font-semibold">
             ▶ Start Stream
         </button>
 
-        <button  onclick="stopStream()" class="w-full hidden rounded-xl bg-red-600 text-white py-3 font-semibold">
+        <button  onclick="stopStream()"  id="btnStopStreamMobile" class="w-full hidden rounded-xl bg-red-600 text-white py-3 font-semibold">
             ■ Stop Stream
         </button>
 

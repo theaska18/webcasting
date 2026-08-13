@@ -55,7 +55,9 @@
             window.open('<?= base_url();?>cast?invitation='+jwtHost);
         }else if(joinType=='presenter'){
             window.open('<?= base_url();?>cast?invitation='+jwtPresenter);
-        }
+        }else{
+			window.open('<?= base_url();?>cast?invitation='+jwtAudience);
+		}
     }
 </script>
     <div class="grid lg:grid-cols-5">
