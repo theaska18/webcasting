@@ -156,7 +156,18 @@ function eventStopStreamOrLeftHost(isParticipant){
 	}else{
 		$('#noticeForAudience').removeClass('hidden');
 		if(videoJsPlayer != null){
+			const container = document.getElementById('videojs-container');
 			videoJsPlayer.dispose();
+			container.innerHTML = `
+				<video
+					id="player"
+					class="absolute top-1/2 -translate-y-1/2 left-0 video-js vjs-default-skin vjs-big-play-centered  w-full h-full"
+					controls
+					autoplay
+					muted
+					playsinline
+				></video>
+			`;
 			videoJsPlayer=null;
 		}
 	}
@@ -182,6 +193,10 @@ function conferenceReady(){
 	$('#joinStatusBottomReady').removeClass('hidden');
 	$('#joinStatusBottom').removeClass('hidden');
 	$('#joinStatusBottom').addClass('hidden');
+	if(isAutoJoin==true){
+		showLoading();
+		joinWebcast();
+	}
 }
 function readyJoinWebcast(){
 	showPrompt(
@@ -386,12 +401,12 @@ function runConference(jwt){
 				$('#pointStatusStream1').addClass('bg-green-400');
 				$('#pointStatusStream2').removeClass('bg-red-500');
 				$('#pointStatusStream2').addClass('bg-green-500');
-				if(actionStream==true){
+				// if(actionStream==true){
 					actionStream=false;
 					ws.send(JSON.stringify({
 						action: "START_STREAM"
 					}));
-				}
+				// }
 				const btn = document.getElementById("btnRecordingDesktop");
 				btn.disabled = false;
 
@@ -459,15 +474,22 @@ function runConference(jwt){
 <div id="video-meet" ref="apiRef"></div>
 
 <?php if($isAudience){ ?>
-<video
-    id="player"
-    class="absolute top-1/2 -translate-y-1/2 left-0 video-js vjs-default-skin vjs-big-play-centered  w-full h-full"
-    controls
-    autoplay
-    muted
-    playsinline
-></video>
+<div id="videojs-container" class="w-full h-full">
+	<video
+		id="player"
+		class="absolute top-1/2 -translate-y-1/2 left-0 video-js vjs-default-skin vjs-big-play-centered  w-full h-full"
+		controls
+		autoplay
+		muted
+		playsinline
+	></video>
+</div>
 <script src="https://vjs.zencdn.net/8.23.4/video.min.js"></script>
+<style>
+	.video-js .vjs-error-display {
+		display: none !important;
+	}
+</style>
 <script>
 	
 	function playLiveStreaming(){
@@ -490,6 +512,7 @@ function runConference(jwt){
 				}
 			}
 		});
+		videoJsPlayer.poster('<?= base_url(); ?>assets/images/poster_not_stream_yet.png');
 		videoJsPlayer.src({
 			src:'https://live.ckamal.com/live/<?= $eventData->event_code; ?>.m3u8',
 			type:'application/x-mpegURL'
@@ -504,12 +527,15 @@ function runConference(jwt){
 			console.log("Reconnect...");
 			setTimeout(loadLiveStream,3000);
 		});
-		
+		videoJsPlayer.one('playing', function () {
+			videoJsPlayer.poster('');
+		});
 	}
 	function loadLiveStream() {
 		console.log("Reload stream...");
 		videoJsPlayer.pause();
 		videoJsPlayer.reset();
+		videoJsPlayer.poster('<?= base_url(); ?>assets/images/poster_not_stream_yet.png');
 		videoJsPlayer.src({
 			src: 'https://live.ckamal.com/live/<?= $eventData->event_code; ?>.m3u8?t=' + Date.now(),
 			type: 'application/x-mpegURL'
@@ -519,7 +545,7 @@ function runConference(jwt){
 	}
 	setInterval(() => {
 		if (videoJsPlayer != null && videoJsPlayer.readyState() < 2) {
-			console.log("Stream not ready, reconnect...");
+			//console.log("Stream not ready, reconnect...");
 			loadLiveStream();
 		}
 	}, 3000);
@@ -834,7 +860,49 @@ function runConference(jwt){
 						The webcast is not yet available because the host or moderator has not joined. The <strong>Join Webcast</strong> button will become available automatically once the Moderator joined.
 					</div>
                 </div>
+				<?php if($isModerator==false){ ?>
+				<div class="mt-5 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+					<div>
+						<label for="autoJoin" class="font-medium text-slate-700">
+							Auto Join
+						</label>
+						<p class="text-sm text-slate-500">
+							Automatically join when the webcast becomes available.
+						</p>
+					</div>
 
+					<label class="inline-flex items-center cursor-pointer">
+						<input
+							type="checkbox"
+							id="autoJoin"
+							class="sr-only peer">
+
+						<div class="relative w-11 h-6 bg-slate-300 rounded-full peer
+									peer-checked:bg-blue-600
+									after:content-['']
+									after:absolute
+									after:top-0.5
+									after:left-0.5
+									after:w-5
+									after:h-5
+									after:bg-white
+									after:rounded-full
+									after:transition-all
+									peer-checked:after:translate-x-5">
+						</div>
+					</label>
+				</div>
+				<script>
+					const ckAutoJoin = document.getElementById('autoJoin');
+					ckAutoJoin.addEventListener('change', function () {
+						if (this.checked) {
+							isAutoJoin=true;
+						} else {
+							isAutoJoin=false;
+						}
+					});
+				</script>
+				<?php } ?>
                 <div class="flex gap-3 mt-8">
 					<button onclick="closeBeforeJoin()" class="flex-1 h-14 rounded-xl bg-slate-200 hover:bg-slate-300 font-semibold">Cancel</button>
 					<button id="joinButton" onclick="readyJoinWebcast()" class="flex-1 <?= (($isParticipant==true && $isWaitingModerator==true) || ($isAudience==true && $isWaitingStreaming==true))?'hidden':''; ?> h-14 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition">Join Webcast</button>

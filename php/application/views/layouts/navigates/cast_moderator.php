@@ -5,6 +5,7 @@
 	var isBroadcast=false;
 	var cancelClose=false;
 	var videoJsPlayer=null;
+	var isAutoJoin=false;
 	window.addEventListener("beforeunload", function (e) {
 		if(allowClose==false){
 			e.preventDefault();
