@@ -85,7 +85,7 @@ const servers = [
     "wss://ws.ckamal.com/webcast/<?= $eventData->event_code; ?>/"
 ];
 let serverIndex = 0;
-function connect() {
+function connect(jwt) {
     const url = servers[serverIndex];
     console.log("Connecting to:", url);
     ws = new WebSocket(url);
@@ -98,7 +98,7 @@ function connect() {
         serverIndex = 0; // reset ke server utama
         ws.send(JSON.stringify({
             action: "auth",
-            token: '<?= $jwtWs; ?>',
+            token: jwt,
         }));
     };
     ws.onmessage = (event) => {
@@ -111,6 +111,7 @@ function connect() {
 				conferenceReady();
 			<?php } ?>
 		}else if(action=='MODERATOR_LEFT'){
+			isWaitingModerator=true;
 			<?php if($isAudience==true || $isParticipant==true){ ?>
 			eventStopStreamOrLeftHost(<?= $isParticipant?'true':'false'; ?>);
 			<?php } ?>
@@ -123,6 +124,8 @@ function connect() {
 			<?php if($isAudience==true){ ?>
 				eventStopStreamOrLeftHost(false);
 			<?php } ?>
+		}else if(action=='MESSAGE'){
+			addMessage(JSON.parse(event.data));
 		}
         
     };
@@ -142,19 +145,154 @@ function connect() {
         }
         reconnectTimer = setTimeout(() => {
             reconnectTimer = null;
-            connect();
+            startSocket();
         }, 1000);
     };
 }
-connect();
+function sendMessage(){
+	var dataMessage={
+		action: "MESSAGE",
+		message:$('#txtAreaMessage').val().trim(),
+		from:'<?= $eventData->user_id; ?>',
+		fromName:'<?= $eventData->user_name; ?>',
+		as:'<?= $isModerator?'moderator':($isParticipant?'participant':'audience'); ?>',
+		time:new Date().toISOString()
+	};
+	ws.send(JSON.stringify(dataMessage));
+	$('#txtAreaMessage').val('');
+	$('#txtAreaMessage').attr('rows','1');
+	addMessage(dataMessage);
+}
+function escapeHtml(text) {
+    return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+function addMessage(dataMessage){
+	const list = document.getElementById('listChatMessages');
+    const isAtBottom =
+        list.scrollTop + list.clientHeight >= list.scrollHeight - 10;
+	if(dataMessage.from==userId){
+		$('#listChatMessages').append(`
+			<div class="flex justify-end">
+				<div class="max-w-[85%]">
+					<div class="mb-1 text-right text-[10px] text-slate-500">
+						`+new Date(dataMessage.time).toLocaleTimeString([], {
+							hour: '2-digit',
+							minute: '2-digit'
+						})+`
+					</div>
+					<div class="rounded-md bg-blue-600 px-3 py-2 text-[11px] leading-5 text-white">
+						`+escapeHtml(dataMessage.message)+`
+					</div>
+				</div>
+			</div>
+		`);
+	}else{
+		if(dataMessage.as=='moderator'){
+			$('#listChatMessages').append(`
+				<div>
+					<div class="flex items-center gap-1">
+						<span class="rounded bg-blue-600 px-1.5 py-0.5 text-[9px] font-bold text-white">
+							MOD
+						</span>
+						<span class="text-[11px] font-semibold text-blue-300">
+							`+escapeHtml(dataMessage.fromName)+`
+						</span>
+						<span class="ml-auto text-[10px] text-slate-500">
+							`+new Date(dataMessage.time).toLocaleTimeString([], {
+								hour: '2-digit',
+								minute: '2-digit'
+							})+`
+						</span>
+					</div>
+					<div class="mt-1 inline-block rounded-md bg-slate-900 px-2.5 py-2 text-[11px] leading-5">
+						`+escapeHtml(dataMessage.message)+`
+					</div>
+				</div>
+			`);
+		}else if(dataMessage.as=='participant'){
+			$('#listChatMessages').append(`
+				<div>
+					<div class="flex items-center gap-1">
+						<span class="rounded bg-emerald-600 px-1.5 py-0.5 text-[9px] font-bold text-white">
+							PRESENTER
+						</span>
+						<span class="text-[11px] font-semibold text-emerald-300">
+							`+escapeHtml(dataMessage.fromName)+`
+						</span>
+						<span class="ml-auto text-[10px] text-slate-500">
+							`+new Date(dataMessage.time).toLocaleTimeString([], {
+								hour: '2-digit',
+								minute: '2-digit'
+							})+`
+						</span>
+					</div>
+					<div class="mt-1 inline-block rounded-md bg-slate-900 px-2.5 py-2 text-[11px] leading-5 text-slate-200">
+						`+escapeHtml(dataMessage.message)+`
+					</div>
+				</div>
+			`);
+		}else{
+			$('#listChatMessages').append(`
+				<div>
+					<div class="flex items-center">
+						<span class="text-[11px] font-semibold text-white">
+							`+escapeHtml(dataMessage.fromName)+`
+						</span>
+						<span class="ml-auto text-[10px] text-slate-500">
+							`+new Date(dataMessage.time).toLocaleTimeString([], {
+								hour: '2-digit',
+								minute: '2-digit'
+							})+`
+						</span>
+					</div>
+					<div class="mt-1 inline-block rounded-md bg-slate-900 px-2.5 py-2 text-[11px] leading-5">
+						`+escapeHtml(dataMessage.message)+`
+					</div>
+				</div>
+			`);
+		}
+	}
+	if (isAtBottom) {
+        list.scrollTop = list.scrollHeight;
+    }
+}
+function startSocket(){
+	$.ajax({
+		url: "<?= base_url() ; ?>cast/getjwtws",
+		type: "GET",
+		dataType: "json",
+		data: {
+			invitation: '<?= $eventData->invitation_code; ?>'
+		},
+		success: function(response){
+			connect(response.data.jwt);
+		},
+		error: function(xhr, status, error){
+
+			console.error("Status :", status);
+			console.error("Error  :", error);
+			console.error("Response :", xhr.responseText);
+		}
+	});
+}
+startSocket();
 <?php if($isAudience==true || $isParticipant==true){ ?>
 function eventStopStreamOrLeftHost(isParticipant){
 	if(isParticipant){
 		$('#noticeForParticipant').removeClass('hidden');
 		cancelClose=true;
-		api.executeCommand('hangup');
+		if(api != null){
+			api.executeCommand('hangup');
+		}
+		toast("The moderator leaves the room.", "warning");
 	}else{
 		$('#noticeForAudience').removeClass('hidden');
+		toast("Streaming stopped.", "warning");
 		if(videoJsPlayer != null){
 			const container = document.getElementById('videojs-container');
 			videoJsPlayer.dispose();

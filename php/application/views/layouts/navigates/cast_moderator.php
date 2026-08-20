@@ -1,4 +1,5 @@
 <script>
+	var userId='<?= $eventData->user_id; ?>';
 	var api=null;
 	var actionStream=false;
 	var allowClose=false;

@@ -1,3 +1,40 @@
+<style>
+	/* Chat */
+	.pretty-scrollbar {
+		padding-right: 4px;
+	}
+
+	.pretty-scrollbar::-webkit-scrollbar {
+		width: 8px;
+	}
+
+	.pretty-scrollbar::-webkit-scrollbar-track {
+		margin: 8px 0;
+		background: transparent;
+	}
+
+	.pretty-scrollbar::-webkit-scrollbar-thumb {
+		background: linear-gradient(
+			180deg,
+			#475569,
+			#334155
+		);
+
+		border-radius: 9999px;
+		border: 2px solid transparent;
+		background-clip: padding-box;
+	}
+
+	.pretty-scrollbar::-webkit-scrollbar-thumb:hover {
+		background: linear-gradient(
+			180deg,
+			#64748b,
+			#475569
+		);
+
+		background-clip: padding-box;
+	}
+</style>
 <div id="modalPrompt"
      class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[10000]">
 
@@ -19,6 +56,87 @@
         </div>
     </div>
 </div>
+<div id="toastContainer"
+     class="fixed top-5 right-5 z-[99999] flex flex-col gap-3 w-96 pointer-events-none">
+</div>
+<script>
+	function toast(message, type = "info") {
+
+		const config = {
+			success: {
+				bg: "bg-emerald-600",
+				icon: "✓"
+			},
+			error: {
+				bg: "bg-red-600",
+				icon: "✕"
+			},
+			warning: {
+				bg: "bg-amber-500",
+				icon: "!"
+			},
+			info: {
+				bg: "bg-blue-600",
+				icon: "ℹ"
+			}
+		};
+
+		const c = config[type];
+
+		const toast = document.createElement("div");
+
+		toast.className =
+			"pointer-events-auto overflow-hidden rounded-xl shadow-2xl " +
+			"backdrop-blur-lg bg-white/90 border border-slate-200 " +
+			"translate-x-20 opacity-0 transition-all duration-300";
+
+		toast.innerHTML = `
+			<div class="flex items-start gap-4 p-4">
+
+				<div class="flex-1">
+					<div class="font-semibold text-slate-800">
+						${type.charAt(0).toUpperCase() + type.slice(1)}
+					</div>
+
+					<div class="mt-1 text-sm text-slate-500">
+						${message}
+					</div>
+				</div>
+
+				<button class="close text-slate-400 hover:text-slate-700">
+					✕
+				</button>
+
+			</div>
+
+			<div class="progress h-1 bg-slate-200">
+				<div class="${c.bg} h-full"></div>
+			</div>
+		`;
+		document.getElementById("toastContainer").appendChild(toast);
+		requestAnimationFrame(() => {
+			toast.classList.remove("translate-x-20", "opacity-0");
+		});
+		const progress = toast.querySelector(".progress div");
+		progress.animate(
+			[
+				{ width: "100%" },
+				{ width: "0%" }
+			],
+			{
+				duration: 4000,
+				easing: "linear"
+			}
+		);
+		const remove = () => {
+			toast.classList.add("translate-x-20", "opacity-0");
+
+			setTimeout(() => toast.remove(), 300);
+		};
+		toast.querySelector(".close").onclick = remove;
+		setTimeout(remove, 4000);
+	}
+</script>
 <!-- Loading Overlay -->
 <div id="loadingOverlay"
      class="fixed hidden inset-0 z-[99999] flex items-center justify-center
