@@ -1,1 +1,2 @@
-config.disableDeepLinking=true;
+config.disableDeepLinking = true;
+config.hideConferenceSubject = true;

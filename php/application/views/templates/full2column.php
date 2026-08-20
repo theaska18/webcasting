@@ -24,11 +24,6 @@
             <!-- Sidebar -->
             <aside id="sidebar" class="fixed md:static z-40 inset-y-0 left-0 w-72 bg-slate-900 text-white transform -translate-x-full md:translate-x-0 transition-transform duration-300">
                 <!-- Header Sidebar -->
-                <div class="flex items-center justify-between p-4 border-b border-slate-700">
-                    <span class="font-bold text-lg">Menu</span>
-                    <!-- Close (mobile only) -->
-                    <button onclick="toggleSidebar()" class="md:hidden">✕</button>
-                </div>
                 <?php
 					if(isset($left)){
 						$this->load->view($left);
@@ -40,7 +35,7 @@
             <!-- Right -->
             <div class="flex-1 flex flex-col overflow-hidden">
                 <!-- Content -->
-                <main class="flex-1 overflow-y-auto bg-slate-100">
+                <main class="flex-1 overflow-y-auto bg-slate-100 relative">
                     <?php
 						if(isset($view)){
 							$this->load->view($view);

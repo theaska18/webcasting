@@ -1,6 +1,10 @@
 <script>
+	var api=null;
 	var actionStream=false;
 	var allowClose=false;
+	var isBroadcast=false;
+	var cancelClose=false;
+	var videoJsPlayer=null;
 	window.addEventListener("beforeunload", function (e) {
 		if(allowClose==false){
 			e.preventDefault();
@@ -10,7 +14,11 @@
 		ws.send(JSON.stringify({
 			action: "MODERATOR_LEFT"
 		}));
+		if(isBroadcast){
+			api.executeCommand('stopRecording', 'stream');
+		}
 		<?php } ?>
+		ajaxLeft();
 	});
 </script>
 <div class="flex items-center justify-between h-20">
@@ -72,7 +80,7 @@
 							try {
 								api.executeCommand('startRecording', {
 									mode: 'stream',
-									rtmpStreamKey: 'rtmp://nginx-rtmp/stream/<?= $roomName; ?>'
+									rtmpStreamKey: 'rtmp://nginx-rtmp/stream/<?= $eventData->event_code; ?>'
 								});
 
 								console.log('Streaming started');
@@ -80,94 +88,180 @@
 								console.error('Failed to start streaming', e);
 							}
 							actionStream=true;
+							$('#btnStartingStreamDesktop').removeClass('hidden');
+							$('#btnStartStreamDesktop').addClass('hidden');
+							$('#btnStartingStreamMobile').removeClass('hidden');
+							$('#btnStartStreamMobile').addClass('hidden');
 							<?php } ?>
                         }
                     );
                 }
             </script>
-            <!-- Start Stream -->
-            <button onclick="startStream()" id="btnStartStreamDesktop" class="inline-flex h-8 items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 px-2.5 text-xs font-semibold text-white transition">
-				<svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-					<path d="M6 4l10 6-10 6V4z"/>
-				</svg>
-				Start Stream
-			</button>
-            <script>
-                function stopStream() {
-                showPrompt(
-                        "Stop Stream",
-                        "Are you sure you want to end the broadcast?",
-                        () => {
-                            console.log("START STREAM");
-							<?php if($isModerator==true){ ?>
-							api.executeCommand('stopRecording', 'stream');
-							<?php } ?>
-                        }
-                    );
-                }
-            </script>
-            <!-- Stop Stream -->
-            <button onclick="stopStream()" id="btnStopStreamDesktop" class="inline-flex hidden h-8 items-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 px-2.5 text-xs font-medium text-white transition">
-				<svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5 5h10v10H5z"/></svg>
-				Stop Stream
-			</button>
+            <div class="inline-flex overflow-hidden rounded-lg border border-slate-300 shadow-sm">
+				<button
+					disabled
+					id="btnStartingStreamDesktop"
+					class="hidden inline-flex h-8 items-center gap-2 border-slate-300 bg-slate-400 px-2.5 text-xs font-semibold text-white cursor-wait">
 
-            <!-- Start Recording -->
-            <button
-				id="btnRecordingDesktop" disabe
-				class="bg-slate-400 h-8 opacity-60 cursor-not-allowed inline-flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-medium text-white transition">
+					<!-- Loading Spinner -->
+					<svg
+						class="w-3 h-3 animate-spin"
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24">
 
-				<span class="w-2 h-2 rounded-full bg-white"></span>
+						<circle
+							class="opacity-25"
+							cx="12"
+							cy="12"
+							r="10"
+							stroke="currentColor"
+							stroke-width="4">
+						</circle>
 
-				Start Recording
+						<path
+							class="opacity-90"
+							fill="currentColor"
+							d="M12 2a10 10 0 0110 10h-4a6 6 0 00-6-6V2z">
+						</path>
 
-			</button>
+					</svg>
 
-            <!-- Stop Recording -->
-            <button
-                class="flex h-8 items-center hidden gap-2 rounded-md border border-orange-200 bg-orange-50 hover:bg-orange-100 px-2.5 py-2.5 text-orange-700 text-xs font-semibold transition">
+					Starting...
 
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    class="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20">
-                    <path d="M5 5h10v10H5z"/>
-                </svg>
+				</button>
+				<button
+					disabled
+					id="btnStoppingStreamDesktop"
+					class="hidden inline-flex h-8 items-center gap-2 border-slate-300 bg-slate-400 px-2.5 text-xs font-semibold text-white cursor-wait">
 
-                Stop Recording
+					<!-- Loading Spinner -->
+					<svg
+						class="w-3 h-3 animate-spin"
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24">
 
-            </button>
-            <script>
-                function endCast() {
-                showPrompt(
-                        "End Cast",
-                        "Are you sure you want to End Cast?",
-                        () => {
-                            console.log("End Cast");
-							allowClose=true;
-                            window.close();
-                        }
-                    );
-                }
-            </script>
-            <!-- End Cast -->
-            <button  onclick="endCast()"
-                class="flex h-8 items-center gap-2 rounded-md bg-slate-900 hover:bg-black px-2.5 py-2.5 text-white text-xs font-semibold shadow-lg transition">
+						<circle
+							class="opacity-25"
+							cx="12"
+							cy="12"
+							r="10"
+							stroke="currentColor"
+							stroke-width="4">
+						</circle>
 
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    class="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24">
-                    <path stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M6 18L18 6M6 6l12 12"/>
-                </svg>
+						<path
+							class="opacity-90"
+							fill="currentColor"
+							d="M12 2a10 10 0 0110 10h-4a6 6 0 00-6-6V2z">
+						</path>
 
-                End Cast
+					</svg>
 
-            </button>
+					Stopping...
+
+				</button>
+				<!-- Start Stream -->
+				<button
+					onclick="startStream()"
+					id="btnStartStreamDesktop"
+					class="inline-flex h-8 items-center gap-2 border-r border-slate-300 bg-blue-600 hover:bg-blue-700 px-3 text-xs font-semibold text-white transition">
+
+					<svg xmlns="http://www.w3.org/2000/svg"
+						class="w-3 h-3"
+						fill="currentColor"
+						viewBox="0 0 20 20">
+						<path d="M6 4l10 6-10 6V4z"/>
+					</svg>
+
+					Start Stream
+
+				</button>
+				
+				<script> 
+					function stopStream() { 
+						showPrompt( "Stop Stream", "Are you sure you want to end the broadcast?", () => { 
+							console.log("START STREAM"); 
+							<?php if($isModerator==true){ ?> 
+							api.executeCommand('stopRecording', 'stream'); 
+							actionStream=true;
+							$('#btnStoppingStreamDesktop').removeClass('hidden');
+							$('#btnStopStreamDesktop').addClass('hidden');
+							$('#btnStoppingStreamMobile').removeClass('hidden');
+							$('#btnStopStreamMobile').addClass('hidden');
+							<?php } ?> 
+						}); 
+					} 
+				</script>
+				<!-- Stop Stream -->
+				<button
+					onclick="stopStream()"
+					id="btnStopStreamDesktop"
+					class="hidden inline-flex h-8 items-center gap-2 border-r border-slate-300 bg-red-600 hover:bg-red-700 px-3 text-xs font-semibold text-white transition">
+
+					<svg xmlns="http://www.w3.org/2000/svg"
+						class="w-3 h-3"
+						fill="currentColor"
+						viewBox="0 0 20 20">
+						<path d="M5 5h10v10H5z"/>
+					</svg>
+
+					Stop Stream
+
+				</button>
+
+				<!-- Start Recording -->
+				<button
+					id="btnRecordingDesktop"
+					disabled
+					class="inline-flex h-8 items-center gap-2 border-r border-slate-300 bg-slate-400 px-3 text-xs font-semibold text-white opacity-60 cursor-not-allowed transition">
+
+					<span class="w-2 h-2 rounded-full bg-white"></span>
+
+					Start Recording
+
+				</button>
+
+				<!-- Stop Recording -->
+				<button
+					id="btnStopRecordingDesktop"
+					class="hidden inline-flex h-8 items-center gap-2 border-r border-slate-300 bg-orange-50 hover:bg-orange-100 px-3 text-xs font-semibold text-orange-700 transition">
+
+					<svg xmlns="http://www.w3.org/2000/svg"
+						class="w-3 h-3"
+						fill="currentColor"
+						viewBox="0 0 20 20">
+						<path d="M5 5h10v10H5z"/>
+					</svg>
+
+					Stop Recording
+
+				</button>
+				<script> function endCast() { showPrompt( "End Cast", "Are you sure you want to End Cast?", () => { console.log("End Cast"); allowClose=true; window.close(); } ); } </script>
+				<!-- End Cast -->
+				<button
+					onclick="endCast()"
+					class="inline-flex h-8 items-center gap-2 bg-red-600 hover:bg-red-700 px-3 text-xs font-semibold text-white transition">
+
+					<svg xmlns="http://www.w3.org/2000/svg"
+						class="w-3 h-3"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						viewBox="0 0 24 24">
+
+						<path stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M6 18L18 6M6 6l12 12"/>
+
+					</svg>
+
+					End Cast
+
+				</button>
+
+			</div>
 <?php
     }else{
 ?>
@@ -186,7 +280,7 @@
             </script>
             <!-- End Cast -->
             <button  onclick="leftCast()"
-                class="flex h-8 items-center gap-2 rounded-xl bg-slate-900 hover:bg-black px-2.5 py-2.5 text-white text-xs font-semibold shadow-lg transition">
+                class="flex h-8 items-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 px-2.5 py-2.5 text-white text-xs font-semibold shadow-lg transition">
 
                 <svg xmlns="http://www.w3.org/2000/svg"
                     class="w-5 h-5"
@@ -234,7 +328,7 @@
 
             </div>
 
-            <div class="hidden 2xl:block">
+            <div class="hidden xl:block">
 
                 <div class="text-sm font-semibold text-slate-800">
 
@@ -292,6 +386,24 @@
 <?php
     if($isModerator){
 ?>
+		<button
+			disabled
+			id="btnStartingStreamMobile"
+			class=" inline-flex h-8 hidden items-center gap-2 rounded-lg border-slate-300 bg-slate-400 px-2.5 text-xs font-semibold text-white cursor-wait">
+			<svg class="w-3 h-3 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+				<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+				<path class="opacity-90" fill="currentColor" d="M12 2a10 10 0 0110 10h-4a6 6 0 00-6-6V2z"></path>
+			</svg>
+			Starting...
+		</button>
+		<button disabled id="btnStoppingStreamMobile"
+			class="hidden inline-flex h-8 items-center rounded-lg gap-2 border-slate-300 bg-slate-400 px-2.5 text-xs font-semibold text-white cursor-wait">
+			<svg class="w-3 h-3 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+				<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+				<path class="opacity-90" fill="currentColor" d="M12 2a10 10 0 0110 10h-4a6 6 0 00-6-6V2z"></path>
+			</svg>
+			Stopping...
+		</button>
         <button  onclick="startStream()"  id="btnStartStreamMobile" class="px-3 h-8 rounded-lg bg-green-600  text-xs text-white py-1 font-semibold">
             ▶ Start Stream
         </button>
@@ -308,7 +420,7 @@
             ■ Stop Record
         </button>
 
-        <button  onclick="endCast()" class="flex px-3 h-8 rounded-lg bg-slate-900 text-white py-1 font-semibold  items-center text-xs">
+        <button  onclick="endCast()" class="flex px-3 h-8 rounded-lg bg-red-600 text-white py-1 font-semibold  items-center text-xs">
             <svg xmlns="http://www.w3.org/2000/svg"
                     class="w-5 h-5"
                     fill="none"
@@ -323,7 +435,7 @@
 <?php
     }else{
 ?>
-        <button  onclick="leftCast()" class="px-3  h-8 rounded-lg bg-slate-900 text-white py-1 font-semibold">
+        <button  onclick="leftCast()" class="px-3  h-8 rounded-lg bg-red-600 text-white py-1 font-semibold">
             Left Cast
         </button>
 <?php

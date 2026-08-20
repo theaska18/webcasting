@@ -524,7 +524,6 @@ services:
             meet.jitsi:
     jibri:
         image: jitsi/jibri:${JITSI_IMAGE_VERSION:-stable-11031}
-        container_name: jitsi_jibri
         restart: ${RESTART_POLICY:-unless-stopped}
         volumes:
             - ${CONFIG}/jibri:/config:Z
