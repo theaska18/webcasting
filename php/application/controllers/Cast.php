@@ -32,6 +32,112 @@ class Cast extends CI_Controller {
 			
 		}else show_404();
 	}
+	function uuidv4(){
+		$data = random_bytes(16);
+		$data[6] = chr((ord($data[6]) & 0x0f) | 0x40);
+		$data[8] = chr((ord($data[8]) & 0x3f) | 0x80);
+		return vsprintf(
+			'%s%s-%s-%s-%s-%s%s%s',
+			str_split(bin2hex($data), 4)
+		);
+	}
+	public function getTopMessage(){
+		if(isset($_GET['invitation'])){
+			$invitationCode=$_GET['invitation'];
+			$sql = "
+				SELECT e.event_id,e.event_code,e.valid_flag,
+					u.user_id,u.user_name,u.email,u.moderator_flag, u.participant_flag,u.ban_flag
+				FROM cast_event_user u
+				INNER JOIN cast_event e
+					ON e.event_id = u.event_id
+				WHERE u.invitation_code = ?
+				LIMIT 1
+			";
+
+			$row = $this->db->query($sql, [$invitationCode])->row();
+			if(!$row){
+				$this->result->error("Invitation is not valid.");
+			}
+			$isModerator=$row->moderator_flag==1?true:false;
+			if($row->valid_flag==1){
+				if($row->ban_flag==0){
+					$lastTime=$_GET['last_time'];
+					$query = "
+						SELECT m.message_id,m.message,m.delete_flag,m.create_on,m.user_id,u.user_name,
+							IF(u.moderator_flag, 'moderator', IF(u.moderator_flag=false && u.participant_flag, 'participant', 'audince')) AS role 
+							FROM cast_event_message m
+							INNER JOIN cast_event e ON e.event_id=m.event_id
+							INNER JOIN cast_event_user u ON u.user_id=m.user_id
+							WHERE m.event_id=? AND m.create_on<?
+							ORDER BY m.create_on DESC LIMIT 30";
+					$result=$this->db->query($query, [
+						$row->event_id,
+						$lastTime
+					])->result();
+					$this->result->setData($result)->end();
+				}else{
+					$this->result->error("Invitation is Banned.");
+				}
+			}else{
+				$this->result->error("Invitation is not valid.");
+			}
+		}else{
+			$this->result->error("parameter 'invitation' is required.");
+		}
+	}
+	public function saveMessage(){
+		if(isset($_POST['invitation'])){
+			$invitationCode=$_POST['invitation'];
+			$sql = "
+				SELECT e.event_id,e.event_code,e.valid_flag,
+					u.user_id,u.user_name,u.email,u.moderator_flag, u.participant_flag,u.ban_flag
+				FROM cast_event_user u
+				INNER JOIN cast_event e
+					ON e.event_id = u.event_id
+				WHERE u.invitation_code = ?
+				LIMIT 1
+			";
+
+			$row = $this->db->query($sql, [$invitationCode])->row();
+			if(!$row){
+				$this->result->error("Invitation is not valid.");
+			}
+			$isModerator=$row->moderator_flag==1?true:false;
+			if($row->valid_flag==1){
+				if($row->ban_flag==0){
+					$message=$_POST['message'];
+					$query = "
+						INSERT INTO cast_event_message (
+							message_id,
+							event_id,
+							user_id,
+							create_on,
+							message
+						)
+						VALUES (
+							?,
+							?,
+							?,
+							UTC_TIMESTAMP(),
+							?
+						)";
+					$this->db->query($query, [
+						$this->uuidv4(),
+						$row->event_id,
+						$row->user_id,
+						$message
+					]);
+					$this->result->end();
+				}else{
+					$this->result->error("Invitation is Banned.");
+				}
+			}else{
+				$this->result->error("Invitation is not valid.");
+			}
+		}else{
+			$this->result->error("parameter 'invitation' is required.");
+		}
+	}
 	public function getjwtws(){
 		if(isset($_GET['invitation'])){
 			$invitationCode=$_GET['invitation'];

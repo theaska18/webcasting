@@ -98,6 +98,9 @@ function connect(jwt) {
         serverIndex = 0; // reset ke server utama
         ws.send(JSON.stringify({
             action: "auth",
+			user_id:"<?= $eventData->user_id; ?>",
+			user_name:"<?= $eventData->user_name; ?>",
+			moderator_flag:<?= $isModerator?'true':'false'; ?>,
             token: jwt,
         }));
     };
@@ -126,6 +129,8 @@ function connect(jwt) {
 			<?php } ?>
 		}else if(action=='MESSAGE'){
 			addMessage(JSON.parse(event.data));
+		}else if(action=='USER_LIST'){
+			// alert(JSON.parse(event.data).list.length);
 		}
         
     };
@@ -161,7 +166,29 @@ function sendMessage(){
 	ws.send(JSON.stringify(dataMessage));
 	$('#txtAreaMessage').val('');
 	$('#txtAreaMessage').attr('rows','1');
-	addMessage(dataMessage);
+	saveMessage(dataMessage);
+}
+function saveMessage(dataMessage){
+	$.ajax({
+		url: "<?= base_url() ; ?>cast/saveMessage",
+		type: "POST",
+		dataType: "json",
+		data: {
+			invitation: '<?= $eventData->invitation_code; ?>',
+			message:dataMessage.message
+		},
+		success: function(response){
+			if(response.code=='00'){
+				addMessage(dataMessage);
+			}
+		},
+		error: function(xhr, status, error){
+
+			console.error("Status :", status);
+			console.error("Error  :", error);
+			console.error("Response :", xhr.responseText);
+		}
+	});
 }
 function escapeHtml(text) {
     return String(text)
@@ -171,29 +198,86 @@ function escapeHtml(text) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
 }
-function addMessage(dataMessage){
+function loadMessage(first=false){//getTopMessage
+	if(isLoadMessage==false){
+		isLoadMessage=true;
+		if(lastTimeMessage==''){
+			lastTimeMessage=new Date().toISOString().slice(0, 19)
+				.replace('T', ' ');
+		}
+		$.ajax({
+			url: "<?= base_url() ; ?>cast/getTopMessage",
+			type: "GET",
+			dataType: "json",
+			data: {
+				invitation: '<?= $eventData->invitation_code; ?>',
+				last_time:lastTimeMessage,
+			},
+			success: function(response){
+				var listData=response.data;
+				const container = document.getElementById("listChatMessages");
+				const oldScrollHeight = container.scrollHeight;
+				const oldScrollTop = container.scrollTop;
+				for(var i=0,iLen=listData.length;i<iLen;i++){
+					lastTimeMessage=listData[i].create_on;
+					const dateUTC = new Date(listData[i].create_on.replace(" ", "T") + "Z");
+					var dataMessage={
+						action: "MESSAGE",
+						message:listData[i].message,
+						from:listData[i].user_id,
+						fromName:listData[i].user_name,
+						as:listData[i].role,
+						time:dateUTC.toISOString()
+					};
+					addMessage(dataMessage,false,(first?true:false));
+				}
+				if(first==false){
+					const newScrollHeight = container.scrollHeight;
+					container.scrollTop = oldScrollTop + (newScrollHeight - oldScrollHeight);
+				}
+				isLoadMessage=false;
+			},
+			error: function(xhr, status, error){
+				isLoadMessage=false;
+				console.error("Status :", status);
+				console.error("Error  :", error);
+				console.error("Response :", xhr.responseText);
+			}
+		});
+	}
+}
+loadMessage(true);
+function addMessage(dataMessage,append=true,scrollBottom=true){
 	const list = document.getElementById('listChatMessages');
     const isAtBottom =
         list.scrollTop + list.clientHeight >= list.scrollHeight - 10;
+	var html="";
 	if(dataMessage.from==userId){
-		$('#listChatMessages').append(`
+		html=`
 			<div class="flex justify-end">
 				<div class="max-w-[85%]">
+
 					<div class="mb-1 text-right text-[10px] text-slate-500">
-						`+new Date(dataMessage.time).toLocaleTimeString([], {
+						${new Date(dataMessage.time).toLocaleTimeString([], {
 							hour: '2-digit',
 							minute: '2-digit'
-						})+`
+						})}
 					</div>
-					<div class="rounded-md bg-blue-600 px-3 py-2 text-[11px] leading-5 text-white">
-						`+escapeHtml(dataMessage.message)+`
+
+					<div class="relative rounded-md bg-blue-600 px-3 py-2 text-[11px] leading-5 text-white">
+
+						${escapeHtml(dataMessage.message)}
+
+						<span class="absolute -right-1 top-3 h-3 w-3 rotate-45 bg-blue-600"></span>
+
 					</div>
+
 				</div>
 			</div>
-		`);
+		`;
 	}else{
 		if(dataMessage.as=='moderator'){
-			$('#listChatMessages').append(`
+			html=`
 				<div>
 					<div class="flex items-center gap-1">
 						<span class="rounded bg-blue-600 px-1.5 py-0.5 text-[9px] font-bold text-white">
@@ -209,17 +293,18 @@ function addMessage(dataMessage){
 							})+`
 						</span>
 					</div>
-					<div class="mt-1 inline-block rounded-md bg-slate-900 px-2.5 py-2 text-[11px] leading-5">
+					<div class="relative mt-1 inline-block rounded-md bg-slate-900 px-2.5 py-2 text-[11px] leading-5">
 						`+escapeHtml(dataMessage.message)+`
+						<span class="absolute -left-1 top-3 h-2.5 w-2.5 rotate-45 bg-slate-900"></span>
 					</div>
 				</div>
-			`);
+			`;
 		}else if(dataMessage.as=='participant'){
-			$('#listChatMessages').append(`
+			html=`
 				<div>
 					<div class="flex items-center gap-1">
 						<span class="rounded bg-emerald-600 px-1.5 py-0.5 text-[9px] font-bold text-white">
-							PRESENTER
+							Part
 						</span>
 						<span class="text-[11px] font-semibold text-emerald-300">
 							`+escapeHtml(dataMessage.fromName)+`
@@ -231,13 +316,14 @@ function addMessage(dataMessage){
 							})+`
 						</span>
 					</div>
-					<div class="mt-1 inline-block rounded-md bg-slate-900 px-2.5 py-2 text-[11px] leading-5 text-slate-200">
+					<div class="relative mt-1 inline-block rounded-md bg-slate-900 px-2.5 py-2 text-[11px] leading-5">
 						`+escapeHtml(dataMessage.message)+`
+						<span class="absolute -left-1 top-3 h-2.5 w-2.5 rotate-45 bg-slate-900"></span>
 					</div>
 				</div>
-			`);
+			`;
 		}else{
-			$('#listChatMessages').append(`
+			html=`
 				<div>
 					<div class="flex items-center">
 						<span class="text-[11px] font-semibold text-white">
@@ -250,16 +336,23 @@ function addMessage(dataMessage){
 							})+`
 						</span>
 					</div>
-					<div class="mt-1 inline-block rounded-md bg-slate-900 px-2.5 py-2 text-[11px] leading-5">
+					<div class="relative mt-1 inline-block rounded-md bg-slate-900 px-2.5 py-2 text-[11px] leading-5">
 						`+escapeHtml(dataMessage.message)+`
+						<span class="absolute -left-1 top-3 h-2.5 w-2.5 rotate-45 bg-slate-900"></span>
 					</div>
 				</div>
-			`);
+			`;
 		}
 	}
-	if (isAtBottom) {
-        list.scrollTop = list.scrollHeight;
-    }
+	if(append==true){
+		$('#listChatMessages').append(html);
+		
+	}else{
+		$('#listChatMessages').prepend(html);
+	}
+	if (isAtBottom && scrollBottom) {
+			list.scrollTop = list.scrollHeight;
+	}
 }
 function startSocket(){
 	$.ajax({
@@ -319,6 +412,9 @@ function eventStopStreamOrLeftHost(isParticipant){
 	$('#joinStatusBottomReady').removeClass('hidden');
 	$('#joinStatusBottomReady').addClass('hidden');
 	$('#preJoinOverlay').removeClass('hidden');
+	ws.send(JSON.stringify({
+		action: "USER_LEFT"
+	}));
 }
 <?php } ?>
 function conferenceReady(){
@@ -363,6 +459,9 @@ function joinWebcast(){
 			<?php }else{ ?>
 			playLiveStreaming();
 			<? } ?>
+			ws.send(JSON.stringify({
+				action: "USER_JOIN"
+			}));
 		},
 		error: function(xhr, status, error){
 			hideLoading();
@@ -526,10 +625,18 @@ function runConference(jwt){
 			if(event.mode=='stream'){
 				isBroadcast=true;
 				<?php if($isModerator==true){ ?>
+				$('#btnStartingStreamDesktop').removeClass('hidden');
 				$('#btnStartingStreamDesktop').addClass('hidden');
+
+				$('#btnStartingStreamMobile').removeClass('hidden');
 				$('#btnStartingStreamMobile').addClass('hidden');
+
+				$('#btnStartStreamDesktop').removeClass('hidden');
 				$('#btnStartStreamDesktop').addClass('hidden');
+
+				$('#btnStartStreamMobile').removeClass('hidden');
 				$('#btnStartStreamMobile').addClass('hidden');
+
 				$('#btnStopStreamDesktop').removeClass('hidden');
 				$('#btnStopStreamMobile').removeClass('hidden');
 				$('#labelStatusStream1').removeClass('text-red-600');
@@ -566,11 +673,19 @@ function runConference(jwt){
 			if(event.mode=='stream'){
 				isBroadcast=false;
 				<?php if($isModerator==true){ ?>
+				$('#btnStoppingStreamDesktop').removeClass('hidden');
 				$('#btnStoppingStreamDesktop').addClass('hidden');
+
+				$('#btnStoppingStreamMobile').removeClass('hidden');
 				$('#btnStoppingStreamMobile').addClass('hidden');
+
 				$('#btnStartStreamDesktop').removeClass('hidden');
 				$('#btnStartStreamMobile').removeClass('hidden');
+
+				$('#btnStopStreamDesktop').removeClass('hidden');
 				$('#btnStopStreamDesktop').addClass('hidden');
+
+				$('#btnStopStreamMobile').removeClass('hidden');
 				$('#btnStopStreamMobile').addClass('hidden');
 				$('#labelStatusStream1').removeClass('text-green-600');
 				$('#labelStatusStream1').addClass('text-red-600');

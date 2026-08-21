@@ -7,11 +7,16 @@
 	var cancelClose=false;
 	var videoJsPlayer=null;
 	var isAutoJoin=false;
+	var lastTimeMessage="";
+	var isLoadMessage=false;
 	window.addEventListener("beforeunload", function (e) {
 		if(allowClose==false){
 			e.preventDefault();
 			e.returnValue = "";
 		}
+		ws.send(JSON.stringify({
+			action: "USER_LEFT"
+		}));
 		<?php if($isModerator){ ?>
 		ws.send(JSON.stringify({
 			action: "MODERATOR_LEFT"
@@ -129,7 +134,7 @@
 
 					</svg>
 
-					Starting...
+					Starting Stream...
 
 				</button>
 				<button
@@ -161,7 +166,7 @@
 
 					</svg>
 
-					Stopping...
+					Stopping Stream...
 
 				</button>
 				<!-- Start Stream -->

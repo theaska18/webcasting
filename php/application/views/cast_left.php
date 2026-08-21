@@ -197,7 +197,9 @@
 				} else {
 					btnScrollBottom.classList.remove("hidden");
 				}
-
+				if (listChatMessages.scrollTop <= 0 && !isLoadMessage) {
+					loadMessage();
+				}
 			});
 			function scrollChatToBottom() {
 

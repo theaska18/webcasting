@@ -61,7 +61,10 @@ wss.on("connection", (ws, req) => {
 
 				ws.user = payload;
 				ws.authenticated = true;
-
+				ws.user_id = data.user_id;
+				ws.user_name = data.user_name;
+				ws.moderator_flag = data.moderator_flag;
+				ws.user_join = false;
 				console.log(`Login : ${payload.name} (${payload.role})`);
 
 				ws.send(
@@ -87,6 +90,32 @@ wss.on("connection", (ws, req) => {
 				ws.close(1008, "Unauthorized");
 			}
 
+			return;
+		}
+		if (data.action === "USER_JOIN" || data.action === "USER_LEFT") {
+			if (data.action === "USER_JOIN") {
+				ws.user_join = true;
+			} else {
+				ws.user_join = false;
+			}
+			var listUser = [];
+			wss.clients.forEach((client) => {
+				if (client.readyState === WebSocket.OPEN && client.user_join == true) {
+					listUser.push({
+						user_id: client.user_id,
+					});
+				}
+			});
+			wss.clients.forEach((client) => {
+				if (client.moderator_flag == true && client.readyState === WebSocket.OPEN) {
+					client.send(
+						JSON.stringify({
+							action: "USER_LIST",
+							list: listUser,
+						}),
+					);
+				}
+			});
 			return;
 		}
 		if (!ws.authenticated) {
