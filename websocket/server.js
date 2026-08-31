@@ -28,7 +28,36 @@ wss.on("connection", (ws, req) => {
 			message: "Please login.",
 		}),
 	);
-
+	ws.on("close", (code, reason) => {
+		ws.user_join = false;
+		var listUser = [];
+		wss.clients.forEach((client) => {
+			if (client.readyState === WebSocket.OPEN && client.user_join == true) {
+				listUser.push({
+					user_id: client.user_id,
+				});
+			}
+		});
+		wss.clients.forEach((client) => {
+			if (client.readyState === WebSocket.OPEN) {
+				if (client.moderator_flag == true) {
+					client.send(
+						JSON.stringify({
+							action: "USER_LIST",
+							list: listUser,
+						}),
+					);
+				} else {
+					client.send(
+						JSON.stringify({
+							action: "USER_LIST",
+							count: listUser.length,
+						}),
+					);
+				}
+			}
+		});
+	});
 	ws.on("message", (message) => {
 		let data;
 
@@ -37,18 +66,18 @@ wss.on("connection", (ws, req) => {
 		} catch {
 			ws.send(
 				JSON.stringify({
-					type: "error",
+					action: "ERROR",
 					message: "Invalid JSON",
 				}),
 			);
 
 			return;
 		}
-		if (data.action === "auth") {
+		if (data.action === "AUTH") {
 			if (!data.token) {
 				ws.send(
 					JSON.stringify({
-						type: "auth",
+						action: "AUTH",
 						success: false,
 						message: "Token required",
 					}),
@@ -69,7 +98,7 @@ wss.on("connection", (ws, req) => {
 
 				ws.send(
 					JSON.stringify({
-						type: "auth",
+						action: "AUTH",
 						success: true,
 						user: {
 							id: payload.id,
@@ -81,7 +110,7 @@ wss.on("connection", (ws, req) => {
 			} catch {
 				ws.send(
 					JSON.stringify({
-						type: "auth",
+						action: "AUTH",
 						success: false,
 						message: "Invalid JWT",
 					}),
@@ -107,13 +136,22 @@ wss.on("connection", (ws, req) => {
 				}
 			});
 			wss.clients.forEach((client) => {
-				if (client.moderator_flag == true && client.readyState === WebSocket.OPEN) {
-					client.send(
-						JSON.stringify({
-							action: "USER_LIST",
-							list: listUser,
-						}),
-					);
+				if (client.readyState === WebSocket.OPEN) {
+					if (client.moderator_flag == true) {
+						client.send(
+							JSON.stringify({
+								action: "USER_LIST",
+								list: listUser,
+							}),
+						);
+					} else {
+						client.send(
+							JSON.stringify({
+								action: "USER_LIST",
+								count: listUser.length,
+							}),
+						);
+					}
 				}
 			});
 			return;

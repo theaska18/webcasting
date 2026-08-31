@@ -4,30 +4,29 @@
     
 
     <!-- Chat -->
-    <button
-        class="tab-btn relative flex items-center justify-center gap-1 rounded-lg py-2 text-xs font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition"
-        data-tab="message">
+    <button class="tab-btn flex items-center justify-center gap-1 rounded-lg py-2 text-xs font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition" data-tab="message" >
 
-        <svg xmlns="http://www.w3.org/2000/svg"
-             class="h-4 w-4"
-             fill="none"
-             viewBox="0 0 24 24"
-             stroke="currentColor"
-             stroke-width="2">
+		<svg xmlns="http://www.w3.org/2000/svg"
+			class="h-4 w-4"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			stroke-width="2">
 
-            <path stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M8 10h8M8 14h5m-9 7l2.5-2.5A2 2 0 004 17.5V5a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H8.5a2 2 0 00-1.4.6L5 21z"/>
+			<path stroke-linecap="round"
+				stroke-linejoin="round"
+				d="M8 10h8M8 14h5m-9 7l2.5-2.5A2 2 0 004 17.5V5a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H8.5a2 2 0 00-1.4.6L5 21z"/>
+		</svg>
 
-        </svg>
+		<span class="relative">
+			Chat
 
-        <span>Chat</span>
+			<span id="chatNotification"
+				class="absolute -top-1.5 -right-2 w-2.5 h-2.5 rounded-full bg-red-500 border border-white hidden">
+			</span>
+		</span>
 
-        <!-- <span class="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
-            5
-        </span> -->
-
-    </button>
+	</button>
 
     <!-- Poll -->
     <button
@@ -72,7 +71,7 @@
         <span>Stats</span>
 
     </button>
-
+	
 	<!-- Participants -->
     <button
         class="tab-btn flex items-center justify-center gap-1 rounded-lg py-2 text-xs font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition"
@@ -91,9 +90,31 @@
 
         </svg>
 
-        <span>18</span>
+        <span id="labelCountParticipantMenu">0</span>
 
     </button>
+	<style>
+		#labelCountParticipantMenu {
+			display: inline-block;
+		}
+
+		#labelCountParticipantMenu.animate {
+			animation: pop .3s ease;
+		}
+
+		@keyframes pop {
+			0% {
+				transform: scale(1);
+			}
+			50% {
+				transform: scale(1.5);
+				color: #3b82f6;
+			}
+			100% {
+				transform: scale(1);
+			}
+		}
+	</style>
 <?php } ?>
 </div>
 
@@ -512,10 +533,10 @@
 
 				<!-- Total Participant -->
 				<span
-					id="participantCount"
+					id="participantCountLabel"
 					class="rounded-full bg-blue-600 px-2 py-1 text-[10px] font-semibold text-white">
 
-					18
+					<?= count($userList); ?>
 
 				</span>
 
@@ -547,238 +568,165 @@
 		<div
 			id="participantList"
 			class="flex-1 overflow-y-auto divide-y divide-slate-800">
-
+			<?php
+				for($i=0,$iLen=count($userList);$i<$iLen;$i++){
+			?>
 			<!-- Moderator -->
 			<div class="flex items-center gap-2 px-3 py-2 hover:bg-slate-900 transition">
 
 				<div class="relative">
 
 					<div class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
-						AK
+						<?= getInitial($userList[$i]->user_name); ?>
 					</div>
 
-					<span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-slate-950"></span>
+					<!-- <span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-slate-950"></span> -->
+					<span id="flag-online-user-list-<?= $userList[$i]->user_id; ?>" class="flag-online-user-list absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-slate-500 ring-2 ring-slate-950"></span>
 
 				</div>
 
 				<div class="min-w-0 flex-1">
-
-					<div class="truncate text-[11px] font-semibold text-white">
-						Asep Kamaludin
-					</div>
-
-					<div class="text-[10px] text-blue-400">
-						Moderator
-					</div>
-
-				</div>
-
-				<button
-					disabled
-					class="rounded bg-slate-800 px-2 py-1 text-[10px] text-slate-500 cursor-not-allowed">
-					Host
-				</button>
-
-			</div>
-
-			<!-- Presenter -->
-			<div class="flex items-center gap-2 px-3 py-2 hover:bg-slate-900 transition">
-
-				<div class="relative">
-
-					<div class="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-[11px] font-bold text-white">
-						JS
-					</div>
-
-					<span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-slate-950"></span>
-
-				</div>
-
-				<div class="min-w-0 flex-1">
-
-					<div class="truncate text-[11px] font-semibold">
-						John Smith
-					</div>
-
-					<div class="text-[10px] text-emerald-400">
-						Presenter
-					</div>
-
-				</div>
-
-				<button
-					class="rounded bg-red-600 hover:bg-red-700 px-2 py-1 text-[10px] font-medium text-white transition">
-					<svg xmlns="http://www.w3.org/2000/svg"
-						class="h-4 w-4"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="2">
-
-						<circle cx="12" cy="12" r="9"/>
-
-						<path stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M8 8l8 8"/>
-
-					</svg>
-				</button>
-
-			</div>
-
-			<!-- Audience -->
-			<div class="flex items-center gap-2 px-3 py-2 hover:bg-slate-900 transition">
-
-				<div class="relative">
-
-					<div class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-[11px] font-bold text-white">
-						SJ
-					</div>
-
-					<span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-slate-950"></span>
-
-				</div>
-
-				<div class="min-w-0 flex-1">
-
-					<div class="truncate text-[11px] font-semibold">
-						Sarah Johnson
-					</div>
-
-					<div class="text-[10px] text-slate-400">
-						Audience
-					</div>
-
-				</div>
-
-				<button
-					class="rounded bg-red-600 hover:bg-red-700 px-2 py-1 text-[10px] font-medium text-white transition">
-					<svg xmlns="http://www.w3.org/2000/svg"
-						class="h-4 w-4"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="2">
-
-						<circle cx="12" cy="12" r="9"/>
-
-						<path stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M8 8l8 8"/>
-
-					</svg>
-				</button>
-
-			</div>
-
-			<!-- Audience -->
-			<div class="flex items-center gap-2 px-3 py-2 hover:bg-slate-900 transition">
-
-				<div class="relative">
-
-					<div class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-[11px] font-bold text-white">
-						MA
-					</div>
-
-					<span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-yellow-500 ring-2 ring-slate-950"></span>
-
-				</div>
-
-				<div class="min-w-0 flex-1">
-
 					<div class="flex items-center gap-2">
 
 						<div class="truncate text-[11px] font-semibold text-slate-100">
-							Michael Anderson
+							<?= $userList[$i]->user_name; ?>
 						</div>
 
-						<span class="rounded bg-red-600 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white">
+						<span class="rounded bg-red-600 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white <?= $userList[$i]->ban_flag==false?'hidden':''; ?>">
 							BANNED
 						</span>
 
 					</div>
 
-					<div class="text-[10px] text-slate-500">
-						Audience
+					<div class="text-[10px] <?= $userList[$i]->role=='moderator'?'text-blue-400':($userList[$i]->role=='participant'?'text-emerald-400':'text-slate-400') ?>">
+						<?= $userList[$i]->role=='moderator'?'Moderator':($userList[$i]->role=='participant'?'Presenter':'Audience') ?>
 					</div>
 
 				</div>
-
-				<button
-					class="rounded bg-blue-600 hover:bg-blue-700 px-2 py-1 text-[10px] font-medium text-white transition">
-					<svg xmlns="http://www.w3.org/2000/svg" title="UnBanned"
-						class="h-4 w-4"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="2">
-
-						<path stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-
-						<circle cx="8.5" cy="7" r="4"/>
-
-						<path stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M16 11l2 2 4-4"/>
-
-					</svg>
-				</button>
-
-			</div>
-
-			<!-- Audience -->
-			<div class="flex items-center gap-2 px-3 py-2 hover:bg-slate-900 transition">
-
+				<?php if($userList[$i]->role!='moderator'){ ?>
+				<!-- Menu -->
 				<div class="relative">
 
-					<div class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-[11px] font-bold text-white">
-						DB
-					</div>
+					<button onclick="toggleParticipantMenu(this)"
+							class="rounded-md p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white">
 
-					<span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-slate-500 ring-2 ring-slate-950"></span>
+						<svg xmlns="http://www.w3.org/2000/svg"
+							class="h-5 w-5"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="2">
+
+							<circle cx="12" cy="5" r="1.5"/>
+							<circle cx="12" cy="12" r="1.5"/>
+							<circle cx="12" cy="19" r="1.5"/>
+
+						</svg>
+
+					</button>
+					
+					<!-- Dropdown -->
+					<div class="participant-menu hidden absolute right-0 top-10 z-50 w-52 overflow-hidden rounded-lg border border-slate-700 bg-slate-800 shadow-xl">
+						<?php if($userList[$i]->role=='participant'){ ?>
+						<button onclick="requestSharedScreen('<?= $userList[$i]->user_id; ?>')" class="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700">
+							<svg xmlns="http://www.w3.org/2000/svg"
+								class="h-4 w-4"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2">
+
+								<rect x="3" y="4" width="18" height="13" rx="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"/>
+
+								<path stroke-linecap="round"
+									stroke-linejoin="round"
+									d="M8 21h8M12 17v4"/>
+
+							</svg>
+							<span>Request Share Screen</span>
+
+						</button>
+						
+						<?php } ?>
+						<button class="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-red-400 hover:bg-red-600 hover:text-white <?= $userList[$i]->ban_flag==false?'':'hidden'; ?>">
+
+							🚫 <span>Banned</span>
+
+						</button>
+						<button class="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-green-400 hover:bg-green-600 hover:text-white <?= $userList[$i]->ban_flag==false?'hidden':''; ?>">
+
+							<svg xmlns="http://www.w3.org/2000/svg" title="UnBanned" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+
+								<path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
+
+								<circle cx="8.5" cy="7" r="4"></circle>
+
+								<path stroke-linecap="round" stroke-linejoin="round" d="M16 11l2 2 4-4"></path>
+
+							</svg> <span>UnBanned</span>
+
+						</button>
+
+					</div>
 
 				</div>
-
-				<div class="min-w-0 flex-1">
-
-					<div class="truncate text-[11px] font-semibold">
-						David Brown
-					</div>
-
-					<div class="text-[10px] text-slate-500">
-						Offline
-					</div>
-
-				</div>
-
+				<?php }else{ ?>
 				<button
 					disabled
-					class="rounded bg-slate-800 px-2 py-1 text-[10px] text-slate-600 cursor-not-allowed">
-					<svg xmlns="http://www.w3.org/2000/svg"
-						class="h-4 w-4"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						stroke-width="2">
-
-						<circle cx="12" cy="12" r="9"/>
-
-						<path stroke-linecap="round"
-							stroke-linejoin="round"
-							d="M8 8l8 8"/>
-
-					</svg>
+					class="rounded bg-slate-800 px-2 py-1 text-[10px] text-slate-500 cursor-not-allowed">
+					Host
 				</button>
-
+				<?php } ?>
 			</div>
+			<?php
+				}
+			?>
+			
 
 		</div>
-
+		<script>
+			function requestSharedScreen(userId){
+				showPrompt(
+					"Share Screen",
+					"Are you sure you want to Request Share Screen?",
+					() => {
+						ws.send(JSON.stringify({
+							action: "REQUEST_SHARE_SCREEN",
+							userId:userId
+						}));
+					}
+				);
+			}
+		</script>
 	</div>
 </div>
 <script>
+	function toggleParticipantMenu(button) {
+
+    const menu = button.nextElementSibling;
+
+    // tutup menu participant lain
+    document.querySelectorAll('.participant-menu').forEach(item => {
+        if (item !== menu) {
+            item.classList.add('hidden');
+        }
+    });
+
+    menu.classList.toggle('hidden');
+}
+
+// klik di luar menu
+document.addEventListener('click', function (e) {
+
+    if (!e.target.closest('.relative')) {
+        document.querySelectorAll('.participant-menu').forEach(item => {
+            item.classList.add('hidden');
+        });
+    }
+
+});
 document.querySelectorAll('.tab-btn').forEach(btn => {
 
     btn.addEventListener('click', function(){
@@ -793,7 +741,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         });
 
         document.getElementById(this.dataset.tab).classList.remove('hidden');
-
+		if(this.dataset.tab=='message'){
+			$('#chatNotification').addClass('hidden');
+		}
         this.classList.add('border-blue-600','text-blue-600','font-semibold');
 
     });

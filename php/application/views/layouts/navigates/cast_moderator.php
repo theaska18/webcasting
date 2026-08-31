@@ -6,17 +6,18 @@
 	var isBroadcast=false;
 	var cancelClose=false;
 	var videoJsPlayer=null;
-	var isAutoJoin=false;
+	var isAutoJoin=true;
 	var lastTimeMessage="";
 	var isLoadMessage=false;
+	var isJoin=false;
 	window.addEventListener("beforeunload", function (e) {
 		if(allowClose==false){
 			e.preventDefault();
 			e.returnValue = "";
 		}
-		ws.send(JSON.stringify({
-			action: "USER_LEFT"
-		}));
+		// ws.send(JSON.stringify({
+		// 	action: "USER_LEFT"
+		// }));
 		<?php if($isModerator){ ?>
 		ws.send(JSON.stringify({
 			action: "MODERATOR_LEFT"

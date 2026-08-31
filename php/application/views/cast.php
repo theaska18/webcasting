@@ -97,7 +97,7 @@ function connect(jwt) {
         }
         serverIndex = 0; // reset ke server utama
         ws.send(JSON.stringify({
-            action: "auth",
+            action: "AUTH",
 			user_id:"<?= $eventData->user_id; ?>",
 			user_name:"<?= $eventData->user_name; ?>",
 			moderator_flag:<?= $isModerator?'true':'false'; ?>,
@@ -130,7 +130,50 @@ function connect(jwt) {
 		}else if(action=='MESSAGE'){
 			addMessage(JSON.parse(event.data));
 		}else if(action=='USER_LIST'){
+			<?php if($isModerator){ ?>
 			// alert(JSON.parse(event.data).list.length);
+			
+				const $label = $('#labelCountParticipantMenu');
+				const count = JSON.parse(event.data).list.length;
+
+				if ($label.text() != count) {
+
+					$label
+						.removeClass('animate');
+
+					// restart animation
+					void $label[0].offsetWidth;
+
+					$label
+						.html(count)
+						.addClass('animate');
+				}
+				var listUser=JSON.parse(event.data).list;
+				$('.flag-online-user-list').removeClass('bg-emerald-500');
+				$('.flag-online-user-list').addClass('bg-slate-500');
+				for(var i=0,iLen=listUser.length;i<iLen;i++){
+					$('#flag-online-user-list-'+listUser[i].user_id).removeClass('bg-slate-500');
+					$('#flag-online-user-list-'+listUser[i].user_id).addClass('bg-emerald-500');
+				}
+			<?php } ?>
+		}else if(action=='AUTH' && JSON.parse(event.data).success==true){
+			
+			if(isJoin==true){
+				// alert();
+				ws.send(JSON.stringify({
+					action: "USER_JOIN"
+				}));
+			}
+		}else if(action=='REQUEST_SHARE_SCREEN'){
+			if(JSON.parse(event.data).userId==userId){
+				showPrompt(
+					"Share Screen",
+					"Are you sure you Will to Share Screen?",
+					() => {
+						api.executeCommand('toggleShareScreen');
+					}
+				);
+			}
 		}
         
     };
@@ -276,6 +319,9 @@ function addMessage(dataMessage,append=true,scrollBottom=true){
 			</div>
 		`;
 	}else{
+		if (!$('#message').is(':visible')) {
+			$('#chatNotification').removeClass('hidden');
+		}
 		if(dataMessage.as=='moderator'){
 			html=`
 				<div>
@@ -366,10 +412,12 @@ function startSocket(){
 			connect(response.data.jwt);
 		},
 		error: function(xhr, status, error){
-
 			console.error("Status :", status);
 			console.error("Error  :", error);
 			console.error("Response :", xhr.responseText);
+			setTimeout(() => {
+				startSocket();
+			}, 1000);
 		}
 	});
 }
@@ -415,6 +463,7 @@ function eventStopStreamOrLeftHost(isParticipant){
 	ws.send(JSON.stringify({
 		action: "USER_LEFT"
 	}));
+	isJoin=false;
 }
 <?php } ?>
 function conferenceReady(){
@@ -462,6 +511,7 @@ function joinWebcast(){
 			ws.send(JSON.stringify({
 				action: "USER_JOIN"
 			}));
+			isJoin=true;
 		},
 		error: function(xhr, status, error){
 			hideLoading();
@@ -1128,6 +1178,7 @@ function runConference(jwt){
 						<input
 							type="checkbox"
 							id="autoJoin"
+							checked
 							class="sr-only peer">
 
 						<div class="relative w-11 h-6 bg-slate-300 rounded-full peer
@@ -1183,6 +1234,13 @@ function runConference(jwt){
         </div>
     </div>
 </div>
+<script>
+<?php if(!$isModerator){ ?>
+	if('ready'=='<?= (($isParticipant==true && $isWaitingModerator==true) || ($isAudience==true && $isWaitingStreaming==true))?'':'ready'; ?>'){
+		conferenceReady();
+	}
+<?php } ?>
+</script>
 <style>
 #webcastTitle{
     position:absolute;

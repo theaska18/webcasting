@@ -18,10 +18,16 @@ class Cast extends CI_Controller {
 			$row = $this->db->query($sql, [$invitationCode])->row();
 			if($row->valid_flag==1){
 				if($row->ban_flag==0){
+					$sql2 = "
+						SELECT u.user_id,u.user_name,IF(u.moderator_flag, 'moderator', IF(u.moderator_flag=false && u.participant_flag, 'participant', 'audience')) AS role , 
+						u.email,u.message_allow, u.pooling_allow,u.ban_flag FROM cast_event_user u WHERE u.event_id=? ORDER BY u.moderator_flag desc,u.participant_flag desc
+					";
+					$userList = $this->db->query($sql2, [$row->event_id])->result();
+
 					$isModerator=$row->moderator_flag==1?true:false;
 					$isParticipant=$row->moderator_flag==0 && $row->participant_flag==1?true:false;
 					$isAudience=$row->moderator_flag==0 && $row->participant_flag==0?true:false;
-					$this->load->view('templates/full2column',array('isAudience'=>$isAudience,'isParticipant'=>$isParticipant,'view'=>'cast','roomName'=>$row->event_name,'navigate'=>'cast_moderator','left'=>'cast_left','isModerator'=>$isModerator,'eventData'=>$row));
+					$this->load->view('templates/full2column',array('userList'=>$userList,'isAudience'=>$isAudience,'isParticipant'=>$isParticipant,'view'=>'cast','roomName'=>$row->event_name,'navigate'=>'cast_moderator','left'=>'cast_left','isModerator'=>$isModerator,'eventData'=>$row));
 				}else{
 					echo 'You\'re Banned';
 				}
