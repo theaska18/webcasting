@@ -222,6 +222,7 @@
 				<!-- Start Recording -->
 				<button
 					id="btnRecordingDesktop"
+					onclick="fatureDisable()"
 					disabled
 					class="inline-flex h-8 items-center gap-2 border-r border-slate-300 bg-slate-400 px-3 text-xs font-semibold text-white opacity-60 cursor-not-allowed transition">
 
@@ -420,7 +421,7 @@
             ■ Stop Stream
         </button>
 
-        <button class="px-3 h-8 rounded-lg bg-orange-500 text-white py-1 font-semibold  text-xs">
+        <button onclick="fatureDisable()" class="px-3 h-8 rounded-lg bg-orange-500 text-white py-1 font-semibold  text-xs">
             ⏺ Start Record
         </button>
 

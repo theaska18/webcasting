@@ -81,6 +81,7 @@ var invitationCode='<?= $eventData->invitation_code; ?>';
 let ws = null;
 let reconnectTimer = null;
 var isWaitingModerator=<?= $isWaitingModerator==true?'true':'false'; ?>;
+var isFirstAuth=true;
 const servers = [
     "wss://ws.ckamal.com/webcast/<?= $eventData->event_code; ?>/"
 ];
@@ -127,6 +128,11 @@ function connect(jwt) {
 			<?php if($isAudience==true){ ?>
 				eventStopStreamOrLeftHost(false);
 			<?php } ?>
+		}else if(action=='BAN'){
+			if(JSON.parse(event.data).userId==userId){
+				allowClose=true;
+				location.reload();
+			}
 		}else if(action=='MESSAGE'){
 			addMessage(JSON.parse(event.data));
 		}else if(action=='USER_LIST'){
@@ -155,9 +161,16 @@ function connect(jwt) {
 					$('#flag-online-user-list-'+listUser[i].user_id).removeClass('bg-slate-500');
 					$('#flag-online-user-list-'+listUser[i].user_id).addClass('bg-emerald-500');
 				}
+				$('#labelCountAllView').html(count);
+				$('#labelCountParticipantView').html(count);
 			<?php } ?>
 		}else if(action=='AUTH' && JSON.parse(event.data).success==true){
-			
+			<?php if(!$isModerator){ ?>
+			if(isFirstAuth ==true && 'ready'=='<?= (($isParticipant==true && $isWaitingModerator==true) || ($isAudience==true && $isWaitingStreaming==true))?'':'ready'; ?>'){
+				conferenceReady();
+			}
+			<?php } ?>
+			isFirstAuth=false;
 			if(isJoin==true){
 				// alert();
 				ws.send(JSON.stringify({
@@ -290,6 +303,69 @@ function loadMessage(first=false){//getTopMessage
 	}
 }
 loadMessage(true);
+<?php if($isModerator){ ?>
+function bannedUser(userBannedId){
+	showPrompt(
+		"Banned",
+		"Are you sure you want Ban this user?",
+		() => {
+			$.ajax({
+				url: "<?= base_url() ; ?>cast/ban",
+				type: "GET",
+				dataType: "json",
+				data: {
+					invitation: '<?= $eventData->invitation_code; ?>',
+					user_id:userBannedId
+				},
+				success: function(response){
+					$('#btnBannedUser'+userBannedId).removeClass('hidden');
+					$('#btnBannedUser'+userBannedId).addClass('hidden');
+					$('#btnUnBannedUser'+userBannedId).removeClass('hidden');
+					$('#labelBannedUser'+userBannedId).removeClass('hidden');
+					$('#btnRequestShareScreenUser'+userBannedId).removeClass('hidden');
+					$('#btnRequestShareScreenUser'+userBannedId).addClass('hidden');
+					ws.send(JSON.stringify({
+						action: "BAN",
+						userId:userBannedId,
+					}));
+				},
+				error: function(xhr, status, error){
+
+				}
+			});
+		}
+	);
+}
+function fatureDisable(){toast("This feature is disabled.", "warning");}
+function unbannedUser(userBannedId){
+	showPrompt(
+		"Banned",
+		"Are you sure you want UnBan this user?",
+		() => {
+			$.ajax({
+				url: "<?= base_url() ; ?>cast/unban",
+				type: "GET",
+				dataType: "json",
+				data: {
+					invitation: '<?= $eventData->invitation_code; ?>',
+					user_id:userBannedId
+				},
+				success: function(response){
+					$('#btnUnBannedUser'+userBannedId).removeClass('hidden');
+					$('#btnUnBannedUser'+userBannedId).addClass('hidden');
+					$('#btnBannedUser'+userBannedId).removeClass('hidden');
+					$('#labelBannedUser'+userBannedId).removeClass('hidden');
+					$('#labelBannedUser'+userBannedId).addClass('hidden');
+					$('#btnRequestShareScreenUser'+userBannedId).removeClass('hidden');
+				},
+				error: function(xhr, status, error){
+
+				}
+			});
+		}
+	);
+}
+<?php } ?>
 function addMessage(dataMessage,append=true,scrollBottom=true){
 	const list = document.getElementById('listChatMessages');
     const isAtBottom =
@@ -530,7 +606,14 @@ function startHeartbeat(){
 			invitation: '<?= $eventData->invitation_code; ?>',
 			<?php if($isModerator==true){ ?>broadcast:isBroadcast==true?'yes':'no',<?php } ?>
 		},
-		success: function(response){},
+		success: function(response){
+			if(response.code=='00'){
+				<?php if($isModerator){ ?>
+					$('#labelHealthCpu').html(response.data.cpu + '%');
+					$('#labelHealthMemory').html(response.data.memory);
+				<?php } ?>
+			}
+		},
 		error: function(xhr, status, error){
 			hideLoading();
 			console.error("Status :", status);
@@ -1235,11 +1318,6 @@ function runConference(jwt){
     </div>
 </div>
 <script>
-<?php if(!$isModerator){ ?>
-	if('ready'=='<?= (($isParticipant==true && $isWaitingModerator==true) || ($isAudience==true && $isWaitingStreaming==true))?'':'ready'; ?>'){
-		conferenceReady();
-	}
-<?php } ?>
 </script>
 <style>
 #webcastTitle{
@@ -1295,3 +1373,210 @@ function runConference(jwt){
     </div>
 
 </div>
+<?php if($isModerator){ ?>
+<div
+    id="pollModal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
+>
+
+    <!-- Dialog -->
+    <div
+        class="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-700
+               bg-slate-900 shadow-2xl"
+    >
+
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-slate-700 px-6 py-4">
+
+            <div>
+                <h2 class="text-lg font-bold text-white">
+                    Create Poll
+                </h2>
+
+                <p class="mt-1 text-xs text-slate-400">
+                    Create a poll for your audience
+                </p>
+            </div>
+
+            <button
+                onclick="closePollModal()"
+                class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+            >
+                ✕
+            </button>
+
+        </div>
+
+
+        <!-- Body -->
+        <div class="space-y-5 p-6">
+
+            <!-- Question -->
+            <div>
+
+                <label class="mb-2 block text-sm font-medium text-slate-300">
+                    Question
+                </label>
+
+                <textarea
+                    id="pollQuestion"
+                    rows="3"
+                    maxlength="200"
+                    placeholder="Ask your audience a question..."
+                    class="w-full resize-none rounded-lg border border-slate-700
+                           bg-slate-950 px-4 py-3 text-sm text-white
+                           placeholder-slate-500 outline-none transition
+                           focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                ></textarea>
+
+                <div class="mt-1 text-right text-[11px] text-slate-500">
+                    0 / 200
+                </div>
+
+            </div>
+
+
+            <!-- Options -->
+            <div>
+
+                <div class="mb-2 flex items-center justify-between">
+
+                    <label class="text-sm font-medium text-slate-300">
+                        Options
+                    </label>
+
+                    <span class="text-[11px] text-slate-500">
+                        Minimum 2 options
+                    </span>
+
+                </div>
+
+
+                <div
+                    id="pollOptions"
+                    class="space-y-2"
+                >
+
+                    <!-- Option -->
+                    <div class="flex items-center gap-2">
+
+                        <input
+                            type="text"
+                            placeholder="Option 1"
+                            class="poll-option flex-1 rounded-lg border border-slate-700
+                                   bg-slate-950 px-4 py-2.5 text-sm text-white
+                                   placeholder-slate-500 outline-none
+                                   focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        >
+
+                    </div>
+
+
+                    <!-- Option -->
+                    <div class="flex items-center gap-2">
+
+                        <input
+                            type="text"
+                            placeholder="Option 2"
+                            class="poll-option flex-1 rounded-lg border border-slate-700
+                                   bg-slate-950 px-4 py-2.5 text-sm text-white
+                                   placeholder-slate-500 outline-none
+                                   focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <!-- Add Option -->
+                <button
+                    onclick="addPollOption()"
+                    class="mt-3 inline-flex items-center gap-2 text-xs
+                           font-semibold text-blue-400 hover:text-blue-300"
+                >
+                    <span class="text-base">+</span>
+                    Add option
+                </button>
+
+            </div>
+
+
+            <!-- Settings -->
+            <div class="rounded-lg border border-slate-700 bg-slate-950/50 p-4">
+
+                <div class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Poll Settings
+                </div>
+
+                <label class="flex cursor-pointer items-center justify-between">
+
+                    <div>
+                        <div class="text-sm text-slate-300">
+                            Allow multiple answers
+                        </div>
+
+                        <div class="mt-1 text-[11px] text-slate-500">
+                            Participants can select more than one option
+                        </div>
+                    </div>
+
+                    <input
+                        id="allowMultiple"
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-slate-600 bg-slate-800
+                               text-blue-600 focus:ring-blue-500"
+                    >
+
+                </label>
+				<label class="flex cursor-pointer items-center justify-between">
+
+                    <div>
+                        <div class="text-sm text-slate-300">
+                            Allow Input Other Option
+                        </div>
+
+                        <div class="mt-1 text-[11px] text-slate-500">
+                            Participants can input other option
+                        </div>
+                    </div>
+
+                    <input
+                        id="alloInputOther"
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-slate-600 bg-slate-800
+                               text-blue-600 focus:ring-blue-500"
+                    >
+
+                </label>
+
+            </div>
+
+        </div>
+
+
+        <!-- Footer -->
+        <div class="flex items-center justify-end gap-3 border-t border-slate-700 px-6 py-4">
+
+            <button
+                onclick="closePollModal()"
+                class="rounded-lg px-4 py-2 text-sm font-medium
+                       text-slate-400 transition hover:bg-slate-800 hover:text-white"
+            >
+                Cancel
+            </button>
+
+            <button
+                onclick="createPoll()"
+                class="rounded-lg bg-blue-600 px-5 py-2 text-sm
+                       font-semibold text-white transition hover:bg-blue-500"
+            >
+                Create Poll
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+<?php } ?>

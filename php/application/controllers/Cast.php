@@ -91,6 +91,84 @@ class Cast extends CI_Controller {
 			$this->result->error("parameter 'invitation' is required.");
 		}
 	}
+	public function unban(){
+		if(isset($_GET['invitation'])){
+			$invitationCode=$_GET['invitation'];
+			$userId=$_GET['user_id'];
+			$sql = "
+				SELECT e.event_id,e.event_code,e.valid_flag,
+					u.user_id,u.user_name,u.email,u.moderator_flag, u.participant_flag,u.ban_flag
+				FROM cast_event_user u
+				INNER JOIN cast_event e
+					ON e.event_id = u.event_id
+				WHERE u.invitation_code = ?
+				LIMIT 1
+			";
+
+			$row = $this->db->query($sql, [$invitationCode])->row();
+			if(!$row){
+				$this->result->error("Invitation is not valid.");
+			}
+			$isModerator=$row->moderator_flag==1?true:false;
+			if($isModerator){
+				if($row->valid_flag==1){
+					$this->db->query("
+						UPDATE cast_event_user
+						SET ban_flag = 0
+						WHERE user_id = ?
+						", [$userId]);
+					$this->result->end();
+				}else{
+					$this->result->error("Invitation is not valid.");
+				}
+			}else{
+				$this->result->error("You are not moderator.");
+			}
+		}else{
+			$this->result->error("parameter 'invitation' is required.");
+		}
+	}
+	public function ban(){
+		if(isset($_GET['invitation'])){
+			$invitationCode=$_GET['invitation'];
+			$userId=$_GET['user_id'];
+			$sql = "
+				SELECT e.event_id,e.event_code,e.valid_flag,
+					u.user_id,u.user_name,u.email,u.moderator_flag, u.participant_flag,u.ban_flag
+				FROM cast_event_user u
+				INNER JOIN cast_event e
+					ON e.event_id = u.event_id
+				WHERE u.invitation_code = ?
+				LIMIT 1
+			";
+
+			$row = $this->db->query($sql, [$invitationCode])->row();
+			if(!$row){
+				$this->result->error("Invitation is not valid.");
+			}
+			$isModerator=$row->moderator_flag==1?true:false;
+			if($isModerator){
+				if($row->valid_flag==1){
+					if($row->ban_flag==0){
+						$this->db->query("
+						UPDATE cast_event_user
+						SET ban_flag = 1
+						WHERE user_id = ?
+					", [$userId]);
+						$this->result->end();
+					}else{
+						$this->result->end();
+					}
+				}else{
+					$this->result->error("Invitation is not valid.");
+				}
+			}else{
+				$this->result->error("You are not moderator.");
+			}
+		}else{
+			$this->result->error("parameter 'invitation' is required.");
+		}
+	}
 	public function saveMessage(){
 		if(isset($_POST['invitation'])){
 			$invitationCode=$_POST['invitation'];
@@ -276,6 +354,83 @@ class Cast extends CI_Controller {
 			$this->result->error("parameter 'invitation' is required.");
 		}
 	}
+	function getCpuUsage()
+	{
+		$stat1 = file('/proc/stat');
+		
+		if (!$stat1) {
+			return 0;
+		}
+
+		$cpu1 = preg_split('/\s+/', trim($stat1[0]));
+
+		$idle1 = $cpu1[4];
+		$total1 = array_sum(array_slice($cpu1, 1));
+
+		usleep(500000); // 0.5 detik
+
+		$stat2 = file('/proc/stat');
+		$cpu2 = preg_split('/\s+/', trim($stat2[0]));
+
+		$idle2 = $cpu2[4];
+		$total2 = array_sum(array_slice($cpu2, 1));
+
+		$totalDiff = $total2 - $total1;
+		$idleDiff = $idle2 - $idle1;
+
+		if ($totalDiff <= 0) {
+			return 0;
+		}
+
+		return round(
+			(1 - ($idleDiff / $totalDiff)) * 100,
+			1
+		);
+	}
+	public function createpoll(){
+		if(isset($_POST['invitation'])){
+			$invitationCode=$_POST['invitation'];
+			$sql = "
+				SELECT e.event_id,e.event_code,e.valid_flag,
+					u.user_id,u.user_name,u.email,u.moderator_flag, u.participant_flag,u.ban_flag
+				FROM cast_event_user u
+				INNER JOIN cast_event e
+					ON e.event_id = u.event_id
+				WHERE u.invitation_code = ?
+				LIMIT 1
+			";
+			$row = $this->db->query($sql, [$invitationCode])->row();
+			if(!$row){
+				$this->result->error("Invitation is not valid.");
+			}
+			$isModerator=$row->moderator_flag==1?true:false;
+			if($row->valid_flag==1){
+				if($row->ban_flag==0){
+					if ($row->moderator_flag == 1) {
+						$this->db->query("
+								INSERT INTO cast_event_polling (event_id,question,allow_multiple,create_on,allow_input_other)values(?,?,?,UTC_TIMESTAMP(),?)
+							", [$row->event_id,$_POST['question'],$_POST['allowMultiple']=='true'?1:0,$_POST['allowInputOther']=='true'?1:0]);
+						$pollingId = $this->db->insert_id();
+						for($i=0,$iLen=count($_POST['options']);$i<$iLen;$i++){
+							$this->db->query("
+								INSERT INTO cast_event_polling_option (polling_id,option_text)values(?,?)
+							", [$pollingId,$_POST['options'][$i]]);
+						}
+						$this->result->end();
+					}else{
+						$this->result->error("You are not Moderator.");
+					}
+				}else{
+					$this->result->error("Invitation is Banned.");
+				}
+				
+			}else{
+				$this->result->error("Invitation is not valid.");
+			}
+		}else{
+			$this->result->error("parameter 'invitation' is required.");
+		}
+	}
 	public function heartbeat(){
 		if(isset($_GET['invitation'])){
 			$invitationCode=$_GET['invitation'];
@@ -288,7 +443,23 @@ class Cast extends CI_Controller {
 				WHERE u.invitation_code = ?
 				LIMIT 1
 			";
+			$load = sys_getloadavg();
 
+			$memory = shell_exec("free -m");
+			preg_match('/Mem:\s+(\d+)\s+(\d+)/', $memory, $matches);
+
+			$totalMemory = $matches[1] ?? 0;
+			$usedMemory  = $matches[2] ?? 0;
+
+			$memoryPercent = $totalMemory > 0
+				? round(($usedMemory / $totalMemory) * 100)
+				: 0;
+
+			$dataHeath= [
+				'cpu' => $this->getCpuUsage(),
+				'memory' => $usedMemory . ' MB ('.$memoryPercent.' %) / '.$totalMemory. ' MB',
+				'memory_percent' => $memoryPercent
+			];
 			$row = $this->db->query($sql, [$invitationCode])->row();
 			if(!$row){
 				$this->result->error("Invitation is not valid.");
@@ -317,7 +488,7 @@ class Cast extends CI_Controller {
 						}
 						
 					}
-					$this->result->end();
+					$this->result->setData($dataHeath)->end();
 				}else{
 					$this->result->error("Invitation is Banned.");
 				}

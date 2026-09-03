@@ -144,20 +144,20 @@
 		</div>
 		<style>
 			/* Chat */
-			#listChatMessages {
+			#listPooling, #listChatMessages {
 				/* padding-right: 4px; */
 			}
 
-			#listChatMessages::-webkit-scrollbar {
+			#listPooling::-webkit-scrollbar , #listChatMessages::-webkit-scrollbar {
 				width: 8px;
 			}
 
-			#listChatMessages::-webkit-scrollbar-track {
+			#listPooling::-webkit-scrollbar-track, #listChatMessages::-webkit-scrollbar-track {
 				margin: 8px 0;
 				background: transparent;
 			}
 
-			#listChatMessages::-webkit-scrollbar-thumb {
+			#listPooling::-webkit-scrollbar-thumb, #listChatMessages::-webkit-scrollbar-thumb {
 				background: linear-gradient(
 					180deg,
 					#475569,
@@ -169,7 +169,7 @@
 				background-clip: padding-box;
 			}
 
-			#listChatMessages::-webkit-scrollbar-thumb:hover {
+			#listPooling::-webkit-scrollbar-thumb:hover, #listChatMessages::-webkit-scrollbar-thumb:hover {
 				background: linear-gradient(
 					180deg,
 					#64748b,
@@ -319,75 +319,588 @@
 				</p>
 			</div>
 <?php if($isModerator){ ?>
-			<button
+			<button onclick="openPollModal()"
 				class="rounded-md bg-green-600 px-2 py-1 text-[10px] font-medium text-white hover:bg-green-700">
 				+ Poll
 			</button>
+			<script>
 
-		</div>
+				function openPollModal() {
+
+					const modal = document.getElementById('pollModal');
+
+					modal.classList.remove('hidden');
+					modal.classList.add('flex');
+
+					document.getElementById('pollQuestion').focus();
+				}
+				function closePollModal() {
+
+					const modal = document.getElementById('pollModal');
+
+					modal.classList.add('hidden');
+					modal.classList.remove('flex');
+				}
+
+
+				function addPollOption() {
+
+					const container = document.getElementById('pollOptions');
+
+					const count = container.querySelectorAll('.poll-option').length + 1;
+
+					const wrapper = document.createElement('div');
+
+					wrapper.className = 'flex items-center gap-2';
+
+					wrapper.innerHTML = `
+						<input
+							type="text"
+							placeholder="Option ${count}"
+							class="poll-option flex-1 rounded-lg border border-slate-700
+								bg-slate-950 px-4 py-2.5 text-sm text-white
+								placeholder-slate-500 outline-none
+								focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+						>
+
+						<button
+							onclick="this.parentElement.remove()"
+							class="rounded-lg p-2 text-slate-500
+								hover:bg-slate-800 hover:text-red-400"
+						>
+							✕
+						</button>
+					`;
+
+					container.appendChild(wrapper);
+				}
+
+
+				function createPoll() {
+					showPrompt(
+					"Save Poll",
+					"Are you sure create new poll?",
+					() => {
+						const question =
+						document.getElementById('pollQuestion').value.trim();
+
+						const options = [...document.querySelectorAll('.poll-option')]
+							.map(input => input.value.trim())
+							.filter(value => value !== '');
+
+						const allowMultiple =
+							document.getElementById('allowMultiple').checked;
+						const alloInputOther =
+							document.getElementById('alloInputOther').checked;
+
+
+						if (!question) {
+							toast("Please enter a question.", "warning");
+							return;
+						}
+
+						if (options.length < 2) {
+							toast("Please add at least 2 options.", "warning");
+							alert('Please add at least 2 options.');
+							return;
+						}
+
+
+						const poll = {
+							invitation: '<?= $eventData->invitation_code; ?>',
+							question: question,
+							options: options,
+							allowMultiple: allowMultiple,
+							allowInputOther: alloInputOther
+						};
+
+
+						console.log('Poll:', poll);
+
+						$.ajax({
+							url: "<?= base_url() ; ?>cast/createpoll",
+							type: "POST",
+							dataType: "json",
+							data: poll,
+							success: function(response){
+								toast("Polling Created.", "success");
+								closePollModal();
+							},
+							error: function(xhr, status, error){
+
+							}
+						});
+
+						
+					});
+					
+				}
+			</script>
+		
 <?php } ?>
+		</div>
 		<!-- Poll List -->
-		<div class="flex-1 overflow-y-auto p-3">
+		<div id="listPooling" class="flex-1 overflow-y-auto p-3">
 
-			<div class="rounded-lg bg-slate-900 p-3">
 
-				<h4 class="text-[11px] font-semibold leading-5 text-white">
-					How satisfied are you with today's webcast?
-				</h4>
+			<!-- Moderator Poll -->
+			<div
+				id="moderatorPoll"
+				class="w-full mb-3 max-w-full rounded-xl border border-slate-700 bg-slate-900 p-4"
+			>
 
-				<div class="mt-4 space-y-3">
+				<!-- Header -->
+				<div class="mb-4">
 
-					<div>
+					<div class="flex items-start justify-between gap-2">
 
-						<div class="flex justify-between text-[11px]">
-							<span>Excellent</span>
-							<span class="text-blue-400">65%</span>
+						<div class="min-w-0 flex-1">
+
+							<div class="flex items-center gap-1.5">
+
+								<span class="text-base flex-shrink-0">📊</span>
+
+								<h3 class="truncate text-sm font-semibold text-white">
+									Live Poll
+								</h3>
+
+								<span
+									class="flex-shrink-0 rounded-full bg-emerald-500/10
+										px-1.5 py-0.5 text-[9px] font-semibold
+										text-emerald-400"
+								>
+									LIVE
+								</span>
+
+							</div>
+
+							<p class="mt-1 text-[10px] text-slate-500">
+								27 participants voted
+							</p>
+
 						</div>
 
-						<div class="mt-1 h-1.5 rounded-full bg-slate-700">
-							<div class="h-1.5 w-[65%] rounded-full bg-blue-500"></div>
+
+						<!-- Close -->
+						<button
+							class="flex-shrink-0 rounded-lg border border-red-500/30
+								bg-red-500/10 px-2 py-1 text-[10px]
+								font-semibold text-red-400
+								hover:bg-red-500/20"
+						>
+							Close
+						</button>
+
+					</div>
+
+				</div>
+
+
+				<!-- Question -->
+				<div class="mb-4">
+
+					<div class="break-words text-xs font-medium leading-5 text-white">
+						What topic should we discuss next?
+					</div>
+
+				</div>
+
+
+				<!-- Results -->
+				<div class="space-y-3">
+
+					<!-- Option -->
+					<div>
+
+						<div class="mb-1 flex items-center justify-between gap-2 text-[10px]">
+
+							<span class="min-w-0 truncate text-slate-300">
+								WebRTC
+							</span>
+
+							<span class="flex-shrink-0 font-semibold text-white">
+								48%
+							</span>
+
+						</div>
+
+						<div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+
+							<div
+								class="h-full rounded-full bg-blue-500"
+								style="width: 48%"
+							></div>
+
+						</div>
+
+						<div class="mt-1 text-[9px] text-slate-500">
+							13 votes
 						</div>
 
 					</div>
 
+
+					<!-- Option -->
 					<div>
 
-						<div class="flex justify-between text-[11px]">
-							<span>Good</span>
-							<span class="text-green-400">22%</span>
+						<div class="mb-1 flex items-center justify-between gap-2 text-[10px]">
+
+							<span class="min-w-0 truncate text-slate-300">
+								Jitsi
+							</span>
+
+							<span class="flex-shrink-0 font-semibold text-white">
+								30%
+							</span>
+
 						</div>
 
-						<div class="mt-1 h-1.5 rounded-full bg-slate-700">
-							<div class="h-1.5 w-[22%] rounded-full bg-green-500"></div>
+						<div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+
+							<div
+								class="h-full rounded-full bg-blue-500"
+								style="width: 30%"
+							></div>
+
+						</div>
+
+						<div class="mt-1 text-[9px] text-slate-500">
+							8 votes
 						</div>
 
 					</div>
 
+
+					<!-- Option -->
 					<div>
 
-						<div class="flex justify-between text-[11px]">
-							<span>Average</span>
-							<span class="text-yellow-400">10%</span>
+						<div class="mb-1 flex items-center justify-between gap-2 text-[10px]">
+
+							<span class="min-w-0 truncate text-slate-300">
+								Streaming
+							</span>
+
+							<span class="flex-shrink-0 font-semibold text-white">
+								22%
+							</span>
+
 						</div>
 
-						<div class="mt-1 h-1.5 rounded-full bg-slate-700">
-							<div class="h-1.5 w-[10%] rounded-full bg-yellow-500"></div>
+						<div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+
+							<div
+								class="h-full rounded-full bg-blue-500"
+								style="width: 22%"
+							></div>
+
+						</div>
+
+						<div class="mt-1 text-[9px] text-slate-500">
+							6 votes
 						</div>
 
 					</div>
 
+				</div>
+
+
+				<!-- Footer -->
+				<div
+					class="mt-4 flex items-center justify-between
+						border-t border-slate-800 pt-3"
+				>
+
+					<span class="text-[9px] text-slate-500">
+						Total votes
+					</span>
+
+					<span class="text-xs font-bold text-white">
+						27
+					</span>
+
+				</div>
+
+			</div>
+			<!-- Participant Poll -->
+			<div
+				id="participantPoll"
+				class="w-full mb-3 max-w-full rounded-xl border border-slate-700 bg-slate-900 p-4"
+			>
+
+				<!-- Header -->
+				<div class="mb-4">
+
+					<div class="flex items-center gap-1.5">
+
+						<span class="flex-shrink-0 text-base">
+							📊
+						</span>
+
+						<span
+							class="text-[10px] font-semibold uppercase
+								tracking-wide text-blue-400"
+						>
+							Live Poll
+						</span>
+
+					</div>
+
+				</div>
+
+
+				<!-- Question -->
+				<div class="mb-4">
+
+					<h3
+						class="break-words text-xs font-semibold
+							leading-5 text-white"
+					>
+						What topic should we discuss next?
+					</h3>
+
+				</div>
+
+
+				<!-- Options -->
+				<div class="space-y-2">
+
+					<!-- Option 1 -->
+					<label
+						class="group flex w-full cursor-pointer items-center gap-2
+							rounded-lg border border-slate-700 bg-slate-950 p-2.5
+							transition hover:border-blue-500/50
+							hover:bg-slate-800"
+					>
+
+						<input
+							type="radio"
+							name="poll"
+							value="webrtc"
+							class="h-3.5 w-3.5 flex-shrink-0 border-slate-600
+								bg-slate-800 text-blue-600
+								focus:ring-blue-500"
+						>
+
+						<span
+							class="min-w-0 truncate text-xs text-slate-300"
+						>
+							WebRTC
+						</span>
+
+					</label>
+
+
+					<!-- Option 2 -->
+					<label
+						class="group flex w-full cursor-pointer items-center gap-2
+							rounded-lg border border-slate-700 bg-slate-950 p-2.5
+							transition hover:border-blue-500/50
+							hover:bg-slate-800"
+					>
+
+						<input
+							type="radio"
+							name="poll"
+							value="jitsi"
+							class="h-3.5 w-3.5 flex-shrink-0 border-slate-600
+								bg-slate-800 text-blue-600
+								focus:ring-blue-500"
+						>
+
+						<span
+							class="min-w-0 truncate text-xs text-slate-300"
+						>
+							Jitsi
+						</span>
+
+					</label>
+
+
+					<!-- Option 3 -->
+					<label
+						class="group flex w-full cursor-pointer items-center gap-2
+							rounded-lg border border-slate-700 bg-slate-950 p-2.5
+							transition hover:border-blue-500/50
+							hover:bg-slate-800"
+					>
+
+						<input
+							type="radio"
+							name="poll"
+							value="streaming"
+							class="h-3.5 w-3.5 flex-shrink-0 border-slate-600
+								bg-slate-800 text-blue-600
+								focus:ring-blue-500"
+						>
+
+						<span
+							class="min-w-0 truncate text-xs text-slate-300"
+						>
+							Streaming
+						</span>
+
+					</label>
+
+				</div>
+
+
+				<!-- Vote -->
+				<button
+					onclick="submitVote()"
+					class="mt-4 w-full rounded-lg bg-blue-600 px-3 py-2
+						text-xs font-semibold text-white transition
+						hover:bg-blue-500"
+				>
+					Vote
+				</button>
+
+			</div>
+			<div
+				id="participantPollResult"
+				class="w-full mb-3 max-w-full rounded-xl border border-slate-700 bg-slate-900 p-4"
+			>
+
+				<!-- Header -->
+				<div class="mb-4">
+
+					<div class="flex items-center gap-1.5">
+
+						<span class="flex-shrink-0 text-base">
+							📊
+						</span>
+
+						<span
+							class="text-[10px] font-semibold uppercase
+								tracking-wide text-emerald-400"
+						>
+							Poll Results
+						</span>
+
+					</div>
+
+					<!-- Question -->
+					<h3
+						class="mt-2 break-words text-xs font-semibold
+							leading-5 text-white"
+					>
+						What topic should we discuss next?
+					</h3>
+
+				</div>
+
+
+				<!-- Results -->
+				<div class="space-y-3">
+
+					<!-- Result 1 -->
 					<div>
 
-						<div class="flex justify-between text-[11px]">
-							<span>Poor</span>
-							<span class="text-red-400">3%</span>
+						<div
+							class="mb-1 flex items-center justify-between
+								gap-2 text-[10px]"
+						>
+
+							<span class="min-w-0 truncate text-slate-300">
+								WebRTC
+							</span>
+
+							<span class="flex-shrink-0 font-semibold text-white">
+								48%
+							</span>
+
 						</div>
 
-						<div class="mt-1 h-1.5 rounded-full bg-slate-700">
-							<div class="h-1.5 w-[3%] rounded-full bg-red-500"></div>
+						<div
+							class="h-1.5 w-full overflow-hidden rounded-full
+								bg-slate-800"
+						>
+
+							<div
+								class="h-full rounded-full bg-blue-500"
+								style="width: 48%"
+							></div>
+
 						</div>
 
 					</div>
+
+
+					<!-- Result 2 -->
+					<div>
+
+						<div
+							class="mb-1 flex items-center justify-between
+								gap-2 text-[10px]"
+						>
+
+							<span class="min-w-0 truncate text-slate-300">
+								Jitsi
+							</span>
+
+							<span class="flex-shrink-0 font-semibold text-white">
+								30%
+							</span>
+
+						</div>
+
+						<div
+							class="h-1.5 w-full overflow-hidden rounded-full
+								bg-slate-800"
+						>
+
+							<div
+								class="h-full rounded-full bg-blue-500"
+								style="width: 30%"
+							></div>
+
+						</div>
+
+					</div>
+
+
+					<!-- Result 3 -->
+					<div>
+
+						<div
+							class="mb-1 flex items-center justify-between
+								gap-2 text-[10px]"
+						>
+
+							<span class="min-w-0 truncate text-slate-300">
+								Streaming
+							</span>
+
+							<span class="flex-shrink-0 font-semibold text-white">
+								22%
+							</span>
+
+						</div>
+
+						<div
+							class="h-1.5 w-full overflow-hidden rounded-full
+								bg-slate-800"
+						>
+
+							<div
+								class="h-full rounded-full bg-blue-500"
+								style="width: 22%"
+							></div>
+
+						</div>
+
+					</div>
+
+				</div>
+
+
+				<!-- Vote Status -->
+				<div
+					class="mt-4 border-t border-slate-800 pt-3 text-center"
+				>
+
+					<span class="text-[9px] text-slate-500">
+						✓ Your vote has been recorded
+					</span>
 
 				</div>
 
@@ -422,23 +935,11 @@
 				<div class="rounded-lg bg-slate-900 p-3">
 
 					<div class="text-[10px] text-slate-500">
-						Viewers
+						All Viewers
 					</div>
 
-					<div class="mt-1 text-lg font-bold text-white">
-						5,421
-					</div>
-
-				</div>
-
-				<div class="rounded-lg bg-slate-900 p-3">
-
-					<div class="text-[10px] text-slate-500">
-						Active
-					</div>
-
-					<div class="mt-1 text-lg font-bold text-emerald-400">
-						5,108
+					<div id="labelCountAllView" class="mt-1 text-lg font-bold text-white">
+						0
 					</div>
 
 				</div>
@@ -446,27 +947,14 @@
 				<div class="rounded-lg bg-slate-900 p-3">
 
 					<div class="text-[10px] text-slate-500">
-						Avg Time
+						Paricipant
 					</div>
 
-					<div class="mt-1 text-lg font-bold text-amber-400">
-						42m
-					</div>
-
-				</div>
-
-				<div class="rounded-lg bg-slate-900 p-3">
-
-					<div class="text-[10px] text-slate-500">
-						Peak
-					</div>
-
-					<div class="mt-1 text-lg font-bold text-red-400">
-						6,028
+					<div  id="labelCountParticipantView" class="mt-1 text-lg font-bold text-emerald-400">
+						0
 					</div>
 
 				</div>
-
 			</div>
 
 			<!-- Stream Health -->
@@ -481,29 +969,12 @@
 
 					<div class="flex justify-between">
 						<span class="text-slate-400">CPU</span>
-						<span>18%</span>
+						<span id="labelHealthCpu">0%</span>
 					</div>
 
 					<div class="flex justify-between">
 						<span class="text-slate-400">Memory</span>
-						<span>2.4 GB</span>
-					</div>
-
-					<div class="flex justify-between">
-						<span class="text-slate-400">Bitrate</span>
-						<span>4.5 Mbps</span>
-					</div>
-
-					<div class="flex justify-between">
-						<span class="text-slate-400">Latency</span>
-						<span>126 ms</span>
-					</div>
-
-					<div class="flex justify-between">
-						<span class="text-slate-400">Packet Loss</span>
-						<span class="text-emerald-400 font-semibold">
-							0%
-						</span>
+						<span id="labelHealthMemory">Loading ...</span>
 					</div>
 
 				</div>
@@ -543,6 +1014,7 @@
 				<!-- Invite -->
 				<button
 					class="flex h-7 w-7 items-center justify-center rounded-md bg-slate-800 text-slate-300 transition hover:bg-blue-600 hover:text-white"
+					onclick="fatureDisable()"
 					title="Invite Participant">
 
 					<svg xmlns="http://www.w3.org/2000/svg"
@@ -592,7 +1064,7 @@
 							<?= $userList[$i]->user_name; ?>
 						</div>
 
-						<span class="rounded bg-red-600 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white <?= $userList[$i]->ban_flag==false?'hidden':''; ?>">
+						<span id="labelBannedUser<?= $userList[$i]->user_id; ?>" class="rounded bg-red-600 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white <?= $userList[$i]->ban_flag==false?'hidden':''; ?>">
 							BANNED
 						</span>
 
@@ -628,7 +1100,7 @@
 					<!-- Dropdown -->
 					<div class="participant-menu hidden absolute right-0 top-10 z-50 w-52 overflow-hidden rounded-lg border border-slate-700 bg-slate-800 shadow-xl">
 						<?php if($userList[$i]->role=='participant'){ ?>
-						<button onclick="requestSharedScreen('<?= $userList[$i]->user_id; ?>')" class="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700">
+						<button id="btnRequestShareScreenUser<?= $userList[$i]->user_id; ?>" onclick="requestSharedScreen('<?= $userList[$i]->user_id; ?>')" class="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700">
 							<svg xmlns="http://www.w3.org/2000/svg"
 								class="h-4 w-4"
 								fill="none"
@@ -650,12 +1122,12 @@
 						</button>
 						
 						<?php } ?>
-						<button class="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-red-400 hover:bg-red-600 hover:text-white <?= $userList[$i]->ban_flag==false?'':'hidden'; ?>">
+						<button id="btnBannedUser<?= $userList[$i]->user_id; ?>" onclick="bannedUser('<?= $userList[$i]->user_id; ?>')" class="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-red-400 hover:bg-red-600 hover:text-white <?= $userList[$i]->ban_flag==false?'':'hidden'; ?>">
 
 							🚫 <span>Banned</span>
 
 						</button>
-						<button class="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-green-400 hover:bg-green-600 hover:text-white <?= $userList[$i]->ban_flag==false?'hidden':''; ?>">
+						<button id="btnUnBannedUser<?= $userList[$i]->user_id; ?>" onclick="unbannedUser('<?= $userList[$i]->user_id; ?>')" class="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-green-400 hover:bg-green-600 hover:text-white <?= $userList[$i]->ban_flag==false?'hidden':''; ?>">
 
 							<svg xmlns="http://www.w3.org/2000/svg" title="UnBanned" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 
