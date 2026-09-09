@@ -959,22 +959,251 @@
 
 			<!-- Stream Health -->
 
-			<div class="rounded-lg bg-slate-900 p-3">
+			<div class="rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-sm">
 
-				<div class="mb-3 text-xs font-semibold text-white">
-					Stream Health
-				</div>
+				<!-- Header -->
+				<div class="mb-4 flex items-center justify-between">
 
-				<div class="space-y-2 text-[11px]">
+					<div class="flex items-center gap-2">
 
-					<div class="flex justify-between">
-						<span class="text-slate-400">CPU</span>
-						<span id="labelHealthCpu">0%</span>
+						<div class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10">
+							<svg
+								class="h-4 w-4 text-blue-400"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.8"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									d="M3 13h2l2-8 4 14 3-10 2 4h5"
+								/>
+							</svg>
+						</div>
+
+						<div>
+							<div class="text-xs font-semibold text-white">
+								Stream Health
+							</div>
+
+							<div class="text-[9px] text-slate-500">
+								Server resources
+							</div>
+						</div>
+
 					</div>
 
-					<div class="flex justify-between">
-						<span class="text-slate-400">Memory</span>
-						<span id="labelHealthMemory">Loading ...</span>
+
+					<!-- Status -->
+					<div class="flex items-center gap-1.5">
+
+						<span class="relative flex h-2 w-2">
+							<span
+								class="absolute inline-flex h-full w-full
+									animate-ping rounded-full bg-emerald-400 opacity-75"
+							></span>
+
+							<span
+								class="relative inline-flex h-2 w-2
+									rounded-full bg-emerald-500"
+							></span>
+						</span>
+
+						<span class="text-[9px] font-medium text-emerald-400">
+							Healthy
+						</span>
+
+					</div>
+
+				</div>
+
+
+				<!-- Metrics -->
+				<div class="space-y-4">
+
+					<!-- CPU -->
+					<div>
+
+						<div class="mb-1.5 flex items-center justify-between">
+
+							<div class="flex items-center gap-2">
+
+								<svg
+									class="h-3.5 w-3.5 text-slate-500"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="1.8"
+									viewBox="0 0 24 24"
+								>
+									<rect
+										x="4"
+										y="4"
+										width="16"
+										height="16"
+										rx="2"
+									/>
+
+									<path
+										stroke-linecap="round"
+										d="M9 9h6v6H9zM9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"
+									/>
+								</svg>
+
+								<span class="text-[10px] text-slate-400">
+									CPU
+								</span>
+
+							</div>
+
+							<span
+								id="labelHealthCpu"
+								class="text-[10px] font-semibold text-white"
+							>
+								Loading...
+							</span>
+
+						</div>
+
+
+						<div class="h-1.5 overflow-hidden rounded-full bg-slate-800">
+
+							<div
+								id="progressHealthCpu"
+								class="h-full rounded-full bg-blue-500 transition-all duration-500"
+								style="width: 0%"
+							></div>
+
+						</div>
+
+					</div>
+
+
+					<!-- Memory -->
+					<div>
+
+						<div class="mb-1.5 flex items-center justify-between">
+
+							<div class="flex items-center gap-2">
+
+								<svg
+									class="h-3.5 w-3.5 text-slate-500"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="1.8"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M5 19V9m4 10V5m5 14v-7m5 7V3"
+									/>
+								</svg>
+
+								<span class="text-[10px] text-slate-400">
+									Memory Usage
+								</span>
+
+							</div>
+
+							<span
+								id="labelHealthMemory"
+								class="text-[10px] font-semibold text-white"
+							>
+								Loading...
+							</span>
+
+						</div>
+
+
+						<div class="h-1.5 overflow-hidden rounded-full bg-slate-800">
+
+							<div
+								id="progressHealthMemory"
+								class="h-full rounded-full bg-violet-500 transition-all duration-500"
+								style="width: 0%"
+							></div>
+
+						</div>
+
+					</div>
+
+
+					<!-- Storage -->
+					<div>
+
+						<div class="mb-1.5 flex items-center justify-between">
+
+							<div class="flex items-center gap-2">
+
+								<svg
+									class="h-3.5 w-3.5 text-slate-500"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="1.8"
+									viewBox="0 0 24 24"
+								>
+									<rect
+										x="3"
+										y="5"
+										width="18"
+										height="14"
+										rx="2"
+									/>
+
+									<path
+										stroke-linecap="round"
+										d="M7 15h.01M11 15h.01"
+									/>
+								</svg>
+
+								<span class="text-[10px] text-slate-400">
+									Storage Usage
+								</span>
+
+							</div>
+
+							<span
+								id="labelHealthStorage"
+								class="text-[10px] font-semibold text-white"
+							>
+								Loading...
+							</span>
+
+						</div>
+
+
+						<div class="h-1.5 overflow-hidden rounded-full bg-slate-800">
+
+							<div
+								id="progressHealthStorage"
+								class="h-full rounded-full bg-amber-500 transition-all duration-500"
+								style="width: 0%"
+							></div>
+
+						</div>
+
+					</div>
+
+				</div>
+
+
+				<!-- Footer -->
+				<div class="mt-4 border-t border-slate-800 pt-3">
+
+					<div class="flex items-center justify-between">
+
+						<span class="text-[9px] text-slate-500">
+							Last updated
+						</span>
+
+						<span
+							id="labelHealthUpdated"
+							class="text-[9px] text-slate-400"
+						>
+							Just now
+						</span>
+
 					</div>
 
 				</div>

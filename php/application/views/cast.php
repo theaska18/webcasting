@@ -210,6 +210,36 @@ function connect(jwt) {
         }, 1000);
     };
 }
+function updateHealth(data) {
+
+    // CPU
+    document.getElementById('labelHealthCpu').textContent =
+        data.cpu + '%';
+
+    document.getElementById('progressHealthCpu').style.width =
+        data.cpu + '%';
+
+
+    // Memory
+    document.getElementById('labelHealthMemory').textContent =
+        data.memory;
+
+    document.getElementById('progressHealthMemory').style.width =
+        data.memory_percent + '%';
+
+
+    // Storage
+    document.getElementById('labelHealthStorage').textContent =
+        data.storage;
+
+    document.getElementById('progressHealthStorage').style.width =
+        data.storage_percent + '%';
+
+
+    // Time
+    document.getElementById('labelHealthUpdated').textContent =
+        new Date().toLocaleTimeString();
+}
 function sendMessage(){
 	var dataMessage={
 		action: "MESSAGE",
@@ -609,8 +639,7 @@ function startHeartbeat(){
 		success: function(response){
 			if(response.code=='00'){
 				<?php if($isModerator){ ?>
-					$('#labelHealthCpu').html(response.data.cpu + '%');
-					$('#labelHealthMemory').html(response.data.memory);
+					updateHealth(response.data);
 				<?php } ?>
 			}
 		},

@@ -443,22 +443,45 @@ class Cast extends CI_Controller {
 				WHERE u.invitation_code = ?
 				LIMIT 1
 			";
-			$load = sys_getloadavg();
-
 			$memory = shell_exec("free -m");
+
 			preg_match('/Mem:\s+(\d+)\s+(\d+)/', $memory, $matches);
 
-			$totalMemory = $matches[1] ?? 0;
-			$usedMemory  = $matches[2] ?? 0;
+			$totalMemoryMB = $matches[1] ?? 0;
+			$usedMemoryMB  = $matches[2] ?? 0;
 
-			$memoryPercent = $totalMemory > 0
-				? round(($usedMemory / $totalMemory) * 100)
+			$memoryPercent = $totalMemoryMB > 0
+				? round(($usedMemoryMB / $totalMemoryMB) * 100)
 				: 0;
 
-			$dataHeath= [
+			$usedMemoryGB = round($usedMemoryMB / 1024, 2);
+			$totalMemoryGB = round($totalMemoryMB / 1024, 2);
+
+
+			// Storage
+			$storagePath = '/';
+
+			$totalStorage = disk_total_space($storagePath);
+			$freeStorage  = disk_free_space($storagePath);
+
+			$usedStorage = $totalStorage - $freeStorage;
+
+			$storagePercent = $totalStorage > 0
+				? round(($usedStorage / $totalStorage) * 100)
+				: 0;
+
+			$usedStorageGB = round($usedStorage / 1024 / 1024 / 1024, 2);
+			$totalStorageGB = round($totalStorage / 1024 / 1024 / 1024, 2);
+
+
+			$dataHeath = [
 				'cpu' => $this->getCpuUsage(),
-				'memory' => $usedMemory . ' MB ('.$memoryPercent.' %) / '.$totalMemory. ' MB',
-				'memory_percent' => $memoryPercent
+
+				'memory' => $usedMemoryGB . ' GB / ' . $totalMemoryGB . ' GB',
+				'memory_percent' => $memoryPercent,
+
+				'storage' => $usedStorageGB . ' GB / ' . $totalStorageGB . ' GB',
+				'storage_percent' => $storagePercent
 			];
 			$row = $this->db->query($sql, [$invitationCode])->row();
 			if(!$row){
