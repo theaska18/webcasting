@@ -10,6 +10,7 @@
 	var lastTimeMessage="";
 	var isLoadMessage=false;
 	var isJoin=false;
+	var pollList=[];
 	window.addEventListener("beforeunload", function (e) {
 		if(allowClose==false){
 			e.preventDefault();

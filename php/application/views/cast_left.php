@@ -27,7 +27,7 @@
 		</span>
 
 	</button>
-
+<?php if($eventData->event_pooling_allow==true){ ?>
     <!-- Poll -->
     <button
         class="tab-btn flex items-center justify-center gap-1 rounded-lg py-2 text-xs font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition"
@@ -49,6 +49,7 @@
         <span>Poll</span>
 
     </button>
+<?php } ?>
 <?php if($isModerator==true){ ?>
     <!-- Analytics -->
     <button
@@ -303,7 +304,7 @@
 	</div>
 
     <!-- POLL -->
-
+<?php if($eventData->event_pooling_allow==true){ ?>
     <div id="poll" class="tab-content hidden h-full flex flex-col bg-slate-950 text-slate-200">
 
 		<!-- Header -->
@@ -910,7 +911,7 @@
 
 	</div>
     <!-- ANALYTICS -->
-
+<?php } ?>
     <div id="analytics" class="tab-content hidden h-full flex flex-col bg-slate-950 text-slate-200">
 
 		<!-- Header -->

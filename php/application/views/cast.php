@@ -617,6 +617,9 @@ function joinWebcast(){
 			ws.send(JSON.stringify({
 				action: "USER_JOIN"
 			}));
+			<?php if($eventData->event_pooling_allow==true){ ?>
+			getPoll();
+			<?php } ?>
 			isJoin=true;
 		},
 		error: function(xhr, status, error){
@@ -651,6 +654,583 @@ function startHeartbeat(){
 		}
 	});
 }
+<?php if($isModerator){ ?>
+async function loadCameras() {
+
+    const cameraList = $('#camera-list');
+
+    try {
+
+        // Request permission agar label kamera tersedia
+        const permissionStream = await navigator.mediaDevices.getUserMedia({
+            video: true
+        });
+
+        permissionStream.getTracks().forEach(track => track.stop());
+
+        const devices = await navigator.mediaDevices.enumerateDevices();
+
+        const cameras = devices.filter(
+            device => device.kind === 'videoinput'
+        );
+
+        $('#camera-count').text(cameras.length);
+
+        cameraList.empty();
+
+        if (cameras.length === 0) {
+
+            cameraList.html(`
+                <div class="rounded-lg border border-slate-800
+                            bg-slate-950 p-3 text-center text-xs
+                            text-slate-500">
+                    No camera found
+                </div>
+            `);
+
+            return;
+        }
+
+        // ==========================================
+        // CREATE CAMERA PREVIEW
+        // ==========================================
+
+        for (let index = 0; index < cameras.length; index++) {
+
+            const camera = cameras[index];
+
+            const name =
+                camera.label || `Camera ${index + 1}`;
+
+            const cameraId = `camera-preview-${index}`;
+
+            const cameraHtml = $(`
+                <div
+                    class="camera-item overflow-hidden rounded-lg border
+                           border-slate-700 bg-slate-950 transition
+                           hover:border-blue-500/50">
+
+                    <!-- Preview -->
+                    <div class="relative aspect-video w-full overflow-hidden
+                                bg-black">
+
+                        <video
+                            id="${cameraId}"
+                            autoplay
+                            muted
+                            playsinline
+							disablePictureInPicture
+                            class="h-full w-full object-cover">
+                        </video>
+
+                        <!-- Camera number -->
+                        <div class="absolute left-2 top-2 rounded-md
+                                    bg-black/70 px-2 py-1 text-[10px]
+                                    font-medium text-white">
+                            Camera ${index + 1}
+                        </div>
+
+                        <!-- Status -->
+                        <div
+                            class="camera-status absolute bottom-2 right-2
+                                   rounded-md bg-black/70 px-2 py-1
+                                   text-[10px] text-green-400">
+                            ● LIVE
+                        </div>
+
+                    </div>
+
+                    <!-- Info -->
+                    <div class="flex items-center gap-2 p-2">
+
+                        <div class="min-w-0 flex-1">
+
+                            <div class="truncate text-xs font-medium
+                                        text-slate-300">
+                                ${name}
+                            </div>
+
+                        </div>
+
+                        <button
+                            type="button"
+                            class="select-camera rounded-md bg-blue-600
+                                   px-2.5 py-1.5 text-[10px] font-semibold
+                                   text-white transition
+                                   hover:bg-blue-500">
+                            SELECT
+                        </button>
+
+                    </div>
+
+                </div>
+            `);
+
+            cameraList.append(cameraHtml);
+
+            const video = document.getElementById(cameraId);
+
+            try {
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        deviceId: {
+                            exact: camera.deviceId
+                        }
+                    },
+                    audio: false
+                });
+
+                video.srcObject = stream;
+
+                // Simpan stream supaya nanti bisa dihentikan
+                cameraHtml.data('stream', stream);
+
+            } catch (error) {
+
+                console.error(
+                    'Failed to open camera:',
+                    name,
+                    error
+                );
+
+                cameraHtml
+                    .find('.camera-status')
+                    .removeClass('text-green-400')
+                    .addClass('text-red-400')
+                    .text('● ERROR');
+
+            }
+
+            // ==========================================
+            // SELECT CAMERA
+            // ==========================================
+
+            cameraHtml.find('.select-camera').on('click', function () {
+
+                selectCamera(camera.label,camera.deviceId);
+
+                $('.camera-item')
+                    .removeClass(
+                        'border-blue-500 bg-blue-500/10'
+                    );
+
+                cameraHtml
+                    .addClass(
+                        'border-blue-500 bg-blue-500/10'
+                    );
+
+            });
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+        cameraList.html(`
+            <div class="rounded-lg border border-red-900/50
+                        bg-red-950/30 p-3 text-xs text-red-400">
+                Camera permission denied
+            </div>
+        `);
+    }
+}
+async function selectCamera(label,deviceId) {
+
+    console.log('Selecting camera:', deviceId);
+
+    try {
+
+        const videoMuted = await api.isVideoMuted();
+
+        console.log('Before change, video muted:', videoMuted);
+
+        // Ganti kamera
+        await api.setVideoInputDevice(label,deviceId);
+
+        console.log('Camera changed:', deviceId);
+
+        // Kalau video sedang OFF, nyalakan
+        // if (videoMuted) {
+
+        //     await new Promise(resolve => setTimeout(resolve, 300));
+
+        //     api.executeCommand('toggleVideo');
+
+        //     console.log('Video enabled');
+
+        // }
+
+    } catch (error) {
+
+        console.error('Failed to select camera:', error);
+
+    }
+}
+<?php } ?>
+<?php if($eventData->event_pooling_allow==true){ ?>
+function getPoll(){
+	$.ajax({
+		url: "<?= base_url() ; ?>cast/getpoll",
+		type: "GET",
+		dataType: "json",
+		data: {
+			invitation: '<?= $eventData->invitation_code; ?>',
+		},
+		success: function(response){
+			if(response.code=='00'){
+				pollList=response.data;
+				pollAnalize();
+			}
+		},
+		error: function(xhr, status, error){
+			console.error("Status :", status);
+			console.error("Error  :", error);
+			console.error("Response :", xhr.responseText);
+		}
+	});
+}
+function pollAnalize(){
+	var dataPoll=$('.poll-data');
+	var ada=false;
+	for(var i=0,iLen=dataPoll.length;i<iLen;i++){
+		ada=false;
+		for(var j=0,jLen=pollList.length;j<jLen;j++){
+			if(dataPoll.eq(i).attr('data-id')==pollList[j].polling_id){
+				ada=true;
+				break;
+			}
+			
+		}
+		if(ada==false){
+			dataPoll.eq(i).remove();
+		}
+	}
+	var dataPoll=$('.poll-data');
+	for(var i=0,iLen=pollList.length;i<iLen;i++){
+		<?php if(!$isModerator){ ?>
+			//jika bukan moderator
+		if($('#polllist-'+pollList[i].polling_id).length>0){
+			//jika sudah ada
+		}else{
+			//jika belum ada
+			var html='';
+			if(pollList[i].sending_flag=='0'){
+				var optionHtml='';
+				var optionOtherHtml='';
+				if(pollList[i].allow_input_other=='1'){
+					if (pollList[i].allow_multiple=='1') {
+
+						optionOtherHtml = `
+							<label class="group flex w-full cursor-pointer items-start gap-2
+									rounded-lg border border-slate-700 bg-slate-950 p-2.5
+									transition hover:border-blue-500/50
+									hover:bg-slate-800">
+
+								<input
+									type="checkbox"
+									name="pollother-${pollList[i].polling_id}"
+									value="1"
+									class="poll-other-checkbox mt-0.5 h-3.5 w-3.5 flex-shrink-0 rounded
+										border-slate-600 bg-slate-800 text-blue-600
+										focus:ring-blue-500">
+
+								<div class="min-w-0 flex-1">
+									<div class="text-xs text-slate-300">
+										Other
+									</div>
+
+									<input
+										type="text"
+										name="pollother-text-${pollList[i].polling_id}"
+										placeholder="Please specify..."
+										class="poll-other-input mt-2 hidden w-full rounded-lg
+											border border-slate-700 bg-slate-900 px-3 py-2
+											text-xs text-white placeholder-slate-500
+											focus:border-blue-500 focus:outline-none focus:ring-1
+											focus:ring-blue-500">
+								</div>
+
+							</label>
+						`;
+
+					} else {
+
+						optionOtherHtml = `
+							<label class="group flex w-full cursor-pointer items-start gap-2
+									rounded-lg border border-slate-700 bg-slate-950 p-2.5
+									transition hover:border-blue-500/50
+									hover:bg-slate-800">
+
+								<input
+									type="radio"
+									name="polloption-${pollList[i].polling_id}"
+									value="other"
+									class="poll-other-radio mt-0.5 h-3.5 w-3.5 flex-shrink-0
+										border-slate-600 bg-slate-800 text-blue-600
+										focus:ring-blue-500">
+
+								<div class="min-w-0 flex-1">
+									<div class="text-xs text-slate-300">
+										Other
+									</div>
+
+									<input
+										type="text"
+										name="pollother-text-${pollList[i].polling_id}"
+										placeholder="Please specify..."
+										class="poll-other-input mt-2 hidden w-full rounded-lg
+											border border-slate-700 bg-slate-900 px-3 py-2
+											text-xs text-white placeholder-slate-500
+											focus:border-blue-500 focus:outline-none focus:ring-1
+											focus:ring-blue-500">
+								</div>
+
+							</label>
+						`;
+					}
+				}
+				for(var j=0,jLen=pollList[i].polling_options.length;j<jLen;j++){
+					if(pollList[i].allow_multiple=='0'){
+						optionHtml += `
+							<label class="group flex w-full cursor-pointer items-center gap-2
+									rounded-lg border border-slate-700 bg-slate-950 p-2.5
+									transition hover:border-blue-500/50
+									hover:bg-slate-800">
+
+								<input
+									type="radio"
+									name="polloption-${pollList[i].polling_id}"
+									value="${pollList[i].polling_options[j].polling_option_id}"
+									class="h-3.5 w-3.5 flex-shrink-0 border-slate-600
+										bg-slate-800 text-blue-600 focus:ring-blue-500">
+
+								<span class="min-w-0 truncate text-xs text-slate-300">
+									${pollList[i].polling_options[j].option_text}
+								</span>
+
+							</label>
+						`;
+
+					}else{
+						optionHtml += `
+							<label class="group flex w-full cursor-pointer items-center gap-2
+									rounded-lg border border-slate-700 bg-slate-950 p-2.5
+									transition hover:border-blue-500/50
+									hover:bg-slate-800">
+
+								<input
+									type="checkbox"
+									name="polloption-${pollList[i].polling_id}[]"
+									value="${pollList[i].polling_options[j].polling_option_id}"
+									class="h-3.5 w-3.5 flex-shrink-0 rounded border-slate-600
+										bg-slate-800 text-blue-600 focus:ring-blue-500">
+
+								<span class="min-w-0 truncate text-xs text-slate-300">
+									${pollList[i].polling_options[j].option_text}
+								</span>
+
+							</label>
+						`;
+					}
+					
+				}
+				html=`
+					<div
+						id="polllist-`+pollList[i].polling_id+`" data-id="${pollList[i].polling_id}" data-sending="false"
+						class="poll-data w-full mb-3 max-w-full rounded-xl border border-slate-700 bg-slate-900 p-4">
+						<div class="mb-4">
+							<div class="flex items-center gap-1.5">
+								<span class="flex-shrink-0 text-base">📊</span>
+								<span class="text-[10px] font-semibold uppercase tracking-wide text-blue-400">Live Poll</span>
+							</div>
+						</div>
+						<div class="mb-4">
+							<h3 class="break-words text-xs font-semibold leading-5 text-white">`+pollList[i].question+`</h3>
+						</div>
+						<div class="space-y-2">
+
+							`+optionHtml+`
+							`+optionOtherHtml+`
+						</div>
+
+
+						<!-- Vote -->
+						<button
+							onclick="submitVote(${pollList[i].polling_id})"
+							class="mt-4 w-full rounded-lg bg-blue-600 px-3 py-2
+								text-xs font-semibold text-white transition
+								hover:bg-blue-500"
+						>
+							Vote
+						</button>
+
+					</div>
+			
+				`;
+			}else{
+				html=`
+
+			
+				`;
+			}
+			
+			$('#listPooling').append(html);
+		}
+		<?php }else{ ?>
+			//jika moderator
+		<?php } ?>
+	}
+}
+function submitVote(pollingId) {
+
+    var container = $('#polllist-' + pollingId);
+
+    var selectedOptions = [];
+
+    // ==========================================
+    // OPTION BIASA
+    // ==========================================
+
+    container
+        .find('input[name^="polloption-"]:checked')
+        .each(function () {
+
+            var value = $(this).val();
+
+            if (value !== 'other') {
+                selectedOptions.push({
+                    polling_option_id: value,
+                    is_other: false,
+                    other_text: null
+                });
+            }
+        });
+
+
+    // ==========================================
+    // OTHER
+    // ==========================================
+
+    var otherSelected = false;
+
+    var otherCheckbox = container.find('.poll-other-checkbox');
+
+    if (otherCheckbox.length && otherCheckbox.is(':checked')) {
+        otherSelected = true;
+    }
+
+    var otherRadio = container.find('.poll-other-radio');
+
+    if (otherRadio.length && otherRadio.is(':checked')) {
+        otherSelected = true;
+    }
+
+
+    if (otherSelected) {
+
+        var otherText = container
+            .find('.poll-other-input')
+            .val()
+            .trim();
+
+        if (otherText === '') {
+			toast('Please specify your answer.', "warning");
+            return;
+        }
+
+        selectedOptions.push({
+            polling_option_id: null,
+            is_other: true,
+            other_text: otherText
+        });
+    }
+
+
+    // ==========================================
+    // VALIDASI
+    // ==========================================
+
+    if (selectedOptions.length === 0) {
+		toast('Please select an option.', "warning");
+        return;
+    }
+
+
+    // ==========================================
+    // DATA
+    // ==========================================
+
+    var data = {
+        polling_id: pollingId,
+        options: selectedOptions
+    };
+
+    console.log(data);
+
+
+    // ==========================================
+    // AJAX
+    // ==========================================
+	showPrompt(
+		"Polling",
+		"Are you sure you want to submit this poll?",
+		() => {
+			$.ajax({
+				url: '<?= base_url() ; ?>cast/submitpoll',
+				type: 'POST',
+				data: {
+					polling_id: pollingId,
+					options: JSON.stringify(selectedOptions)
+				},
+				success: function (response) {
+
+					console.log(response);
+
+				},
+				error: function (xhr) {
+
+					console.error(xhr.responseText);
+
+				}
+			});
+		}
+	);
+    
+}
+
+$(document).on('change', '.poll-data input[type="radio"]', function () {
+
+    var container = $(this).closest('.poll-data');
+    var otherRadio = container.find('.poll-other-radio');
+    var otherInput = container.find('.poll-other-input');
+
+    if (otherRadio.is(':checked')) {
+
+        otherInput
+            .removeClass('hidden')
+            .focus();
+
+    } else {
+
+        otherInput
+            .addClass('hidden')
+            .val('');
+    }
+});
+$(document).on('change', '.poll-other-checkbox', function () {
+
+	var container = $(this).closest('.poll-data');
+
+	var input = container.find('.poll-other-input');
+
+	if ($(this).is(':checked')) {
+		input.removeClass('hidden').focus();
+	} else {
+		input.addClass('hidden').val('');
+	}
+});
+<?php } ?>
 function ajaxJoin(){
 	$.ajax({
 		url: "<?= base_url() ; ?>cast/join",
@@ -699,10 +1279,11 @@ function runConference(jwt){
 					'RECORDING_ON_SOUND',
 					'RECORDING_OFF_SOUND'
 				],
+				<?php }else{ ?>
 				<?php } ?>
               // pollCreationRequiresPermission: true,
                 toolbarButtons: [
-                     'camera',
+                     <?= !$isModerator?"'camera',":""; ?>
       //  'chat',
        'closedcaptions',
       <?= $isModerator?"'desktop',":""; ?>
@@ -762,12 +1343,15 @@ function runConference(jwt){
 		//   allowClose=true;
         //                     window.close();
 	api = new JitsiMeetExternalAPI(domain, options);
-	api.addEventListener('videoConferenceJoined', () => {
+	api.addEventListener('videoConferenceJoined', (data) => {
+		const myId = data.id;
 		ajaxJoin();
 		<?php if($isModerator){ ?>
 		ws.send(JSON.stringify({
 			action: "MODERATOR_JOIN"
 		}));
+		loadCameras();
+		api.pinParticipant(myId, 'camera');
 		<?php } ?>
 		setInterval(() => {
 			startHeartbeat();
@@ -886,7 +1470,201 @@ function runConference(jwt){
 <?php } ?>
 <link href="https://vjs.zencdn.net/8.23.4/video-js.css" rel="stylesheet">
 <script src='https://jitsi.ckamal.com/external_api.js'></script>
+<?php if(!$isAudience){ ?>
+<?php if($isModerator){ ?>
+
+<div class="flex h-full w-full overflow-hidden border border-slate-700 bg-slate-950">
+
+    <!-- Jitsi -->
+    <div id="video-meet" class="min-w-0 flex-1"></div>
+
+    <!-- Camera Panel -->
+    <div class="w-64 shrink-0 border-l border-slate-700 bg-slate-900 p-3">
+
+        <!-- Header -->
+        <div class="mb-3 flex items-center justify-between">
+
+            <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-300">
+                Cameras
+            </h3>
+
+            <div class="flex items-center gap-1.5">
+
+                <!-- Camera ON/OFF -->
+                <button
+                    id="camera-toggle"
+                    type="button"
+                    title="Turn camera off"
+                    class="flex h-7 items-center gap-1.5 rounded-md
+                           bg-green-600 text-white px-2 text-[10px] font-semibold
+                            transition
+                           hover:bg-slate-700 hover:text-white">
+
+                    <!-- Camera icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-3.5 w-3.5"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor"
+                         stroke-width="2">
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 19h6a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+
+                    <span id="camera-toggle-text">
+                        ON
+                    </span>
+
+                </button>
+
+                <!-- Reload -->
+                <button
+                    id="reload-cameras"
+                    type="button"
+                    title="Reload cameras"
+                    class="flex h-7 w-7 items-center justify-center
+                           rounded-md bg-slate-800 text-slate-400
+                           transition hover:bg-slate-700 hover:text-white">
+
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-3.5 w-3.5"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor"
+                         stroke-width="2">
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M4 4v5h5M20 20v-5h-5M5.5 9A7.5 7.5 0 0118.5 6.5L20 9M18.5 15A7.5 7.5 0 015.5 17.5L4 15"/>
+                    </svg>
+
+                </button>
+
+                <!-- Count -->
+                <span id="camera-count"
+                      class="rounded-full bg-slate-800 px-2 py-0.5
+                             text-[10px] text-slate-400">
+                    0
+                </span>
+
+            </div>
+
+        </div>
+
+        <!-- Camera List -->
+        <div id="camera-list" class="space-y-2">
+
+            <div class="text-xs text-slate-500">
+                Detecting cameras...
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+<script>
+// ==========================================
+// CAMERA STATE
+// ==========================================
+
+let cameraEnabled = true;
+
+
+// ==========================================
+// CAMERA ON / OFF
+// ==========================================
+
+$('#camera-toggle').on('click', async function () {
+
+    try {
+
+        const muted = await api.isVideoMuted();
+
+        console.log('Current video muted:', muted);
+
+        if (muted) {
+
+            // ON
+            await api.executeCommand('toggleVideo');
+
+            cameraEnabled = true;
+
+            $('#camera-toggle-text').text('ON');
+
+            $(this)
+                .removeClass('bg-slate-800 text-slate-400')
+                .addClass('bg-green-600 text-white');
+
+            $(this).attr('title', 'Turn camera off');
+
+        } else {
+
+            // OFF
+            await api.executeCommand('toggleVideo');
+
+            cameraEnabled = false;
+
+            $('#camera-toggle-text').text('OFF');
+
+            $(this)
+                .removeClass('bg-green-600 text-white')
+                .addClass('bg-slate-800 text-slate-400');
+
+            $(this).attr('title', 'Turn camera on');
+        }
+
+    } catch (error) {
+
+        console.error('Failed to toggle camera:', error);
+
+    }
+
+});
+
+
+// ==========================================
+// RELOAD CAMERAS
+// ==========================================
+
+$('#reload-cameras').on('click', async function () {
+
+    const button = $(this);
+
+    // Loading animation
+    button.find('svg')
+        .addClass('animate-spin');
+
+    button.prop('disabled', true);
+
+    try {
+
+        await loadCameras();
+
+    } catch (error) {
+
+        console.error('Failed to reload cameras:', error);
+
+    } finally {
+
+        button.find('svg')
+            .removeClass('animate-spin');
+
+        button.prop('disabled', false);
+    }
+
+});
+
+</script>
+<?php }else{ ?>
 <div id="video-meet" ref="apiRef"></div>
+<?php } ?>
+
+
+
+
+<?php } ?>
 
 <?php if($isAudience){ ?>
 <div id="videojs-container" class="w-full h-full">

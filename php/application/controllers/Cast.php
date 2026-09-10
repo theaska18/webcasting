@@ -387,6 +387,92 @@ class Cast extends CI_Controller {
 			1
 		);
 	}
+	public function getpoll(){
+		if(isset($_GET['invitation'])){
+			$invitationCode=$_GET['invitation'];
+			$sql = "
+				SELECT e.event_id,e.event_code,e.valid_flag,
+					u.user_id,u.user_name,u.email,u.moderator_flag, u.participant_flag,u.ban_flag,u.pooling_allow as polling_allow
+				FROM cast_event_user u
+				INNER JOIN cast_event e
+					ON e.event_id = u.event_id
+				WHERE u.invitation_code = ?
+				LIMIT 1
+			";
+			$row = $this->db->query($sql, [$invitationCode])->row();
+			if(!$row){
+				$this->result->error("Invitation is not valid.");
+			}
+			$isModerator=$row->moderator_flag==1?true:false;
+			if($row->valid_flag==1){
+				if($row->ban_flag==0){
+					if ($row->moderator_flag == 1) {
+						$sqlPoll = "
+							select p.* from cast_event_polling p where event_id=? order by p.create_on asc
+						";
+						$rowPoll = $this->db->query($sql, [$row->event_id])->result();
+						$this->result->end();
+					}else{
+						$sqlPoll = "
+							select p.*, CASE WHEN up.user_polling_id is null THEN false ELSE true END as sending_flag from cast_event_polling p 
+								LEFT JOIN cast_event_user_polling up ON up.polling_id=p.polling_id
+							where p.event_id=? and p.active_flag=1 order by p.create_on asc
+						";
+						$resPoll = $this->db->query($sqlPoll, [$row->event_id])->result();
+						for($i=0,$iLen=count($resPoll); $i<$iLen;$i++){
+							$sqlPollOption="
+								SELECT po.*,
+										CASE
+											WHEN (
+												SELECT COUNT(*)
+												FROM cast_event_user_polling up
+												INNER JOIN cast_event_user_polling_option upo
+													ON upo.user_polling_id = up.user_polling_id
+												WHERE up.user_id = ?
+												AND upo.polling_option_id = po.polling_option_id
+											) > 0
+											THEN TRUE
+											ELSE FALSE
+										END AS selected,
+										(
+											SELECT COUNT(*)
+											FROM cast_event_user_polling up
+											INNER JOIN cast_event_user_polling_option upo
+												ON upo.user_polling_id = up.user_polling_id
+											WHERE upo.polling_option_id = po.polling_option_id
+										) as count_data
+									FROM cast_event_polling_option po
+									WHERE po.polling_id = ?
+									ORDER BY po.line ASC;
+									
+							";
+							$resPollOption = $this->db->query($sqlPollOption, [$row->user_id,$resPoll[$i]->polling_id])->result();
+							$resPoll[$i]->polling_options=$resPollOption;
+							$sqlPollOptionOther="
+								SELECT upo.polling_option_other
+									FROM cast_event_user_polling up
+									INNER JOIN cast_event_user_polling_option upo
+										ON upo.user_polling_id = up.user_polling_id
+									WHERE up.user_id = ?
+									AND upo.polling_option_id is null and up.polling_id=?
+							";
+							$resPollOptionOther = $this->db->query($sqlPollOptionOther, [$row->user_id,$resPoll[$i]->polling_id])->result();
+							$resPoll[$i]->polling_allow=$row->polling_allow;
+							$resPoll[$i]->polling_option_others=$resPollOptionOther;
+						}
+						$this->result->setData($resPoll)->end();
+					}
+				}else{
+					$this->result->error("Invitation is Banned.");
+				}
+				
+			}else{
+				$this->result->error("Invitation is not valid.");
+			}
+		}else{
+			$this->result->error("parameter 'invitation' is required.");
+		}
+	}
 	public function createpoll(){
 		if(isset($_POST['invitation'])){
 			$invitationCode=$_POST['invitation'];
@@ -413,8 +499,8 @@ class Cast extends CI_Controller {
 						$pollingId = $this->db->insert_id();
 						for($i=0,$iLen=count($_POST['options']);$i<$iLen;$i++){
 							$this->db->query("
-								INSERT INTO cast_event_polling_option (polling_id,option_text)values(?,?)
-							", [$pollingId,$_POST['options'][$i]]);
+								INSERT INTO cast_event_polling_option (polling_id,option_text,line)values(?,?,?)
+							", [$pollingId,$_POST['options'][$i],($i+1)]);
 						}
 						$this->result->end();
 					}else{
